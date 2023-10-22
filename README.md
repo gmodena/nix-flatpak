@@ -38,7 +38,7 @@ Using flake, installing `nix-flatpak` as a NixOs module would looks something li
     nix-flatpak.url = "github:gmodena/nix-flatpak/main";
   };
 
-  outputs = { flatpaks, ... }: {
+  outputs = { nix-flatpak, ... }: {
     nixosConfigurations.<host> = nixpkgs.lib.nixosSystem {
       modules = [
         nix-flatpak.nixosModules.nix-flatpak
