@@ -1,4 +1,5 @@
 [![experimental](http://badges.github.io/stability-badges/dist/experimental.svg)](http://github.com/badges/stability-badges)
+[![system build](https://github.com/gmodena/nix-flatpak/actions/workflows/test.yml/badge.svg)](https://github.com/gmodena/nix-flatpak/actions/workflows/test.yml)
 
 # nix-flatpak
 
