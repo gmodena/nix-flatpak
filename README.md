@@ -51,6 +51,17 @@ Using flake, installing `nix-flatpak` as a NixOs module would looks something li
 
 ```
 
+
+### Remotes
+
+By default `nix-flatpak` will add the flathub remote. Remotes can be manually
+configured via the `services.flatpak.remotes` option:
+
+```nix
+[{ name = "flathub-beta"; location = "https://flathub.org/beta-repo/flathub-beta.flatpakrepo"; }]
+```
+
+### Packages
 Declare packages to install with:
 ```nix
   services.flatpak.packages = [
