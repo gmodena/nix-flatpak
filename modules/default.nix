@@ -55,14 +55,14 @@ in
       Declares a list of applications to install.
     '';
     example = literalExpression ''
-        [
-            # declare applications to install using its fqdn
-            "com.obsproject.Studio"
-            # specify a remote.
-            { appId = "com.brave.Browser"; origin = "flathub";  }
-            # Pin the application to a specific commit.
-            { appId = "im.riot.Riot"; commit = "bdcc7fff8359d927f25226eae8389210dba3789ca5d06042d6c9c133e6b1ceb1" }
-        ];
+      [
+          # declare applications to install using its fqdn
+          "com.obsproject.Studio"
+          # specify a remote.
+          { appId = "com.brave.Browser"; origin = "flathub";  }
+          # Pin the application to a specific commit.
+          { appId = "im.riot.Riot"; commit = "bdcc7fff8359d927f25226eae8389210dba3789ca5d06042d6c9c133e6b1ceb1" }
+      ];
     '';
   };
   remotes = mkOption {
@@ -72,8 +72,19 @@ in
       Declare a list of flatpak repositories.
     '';
     example = literalExpression ''
-        # Flathub is the default initialized by this flake.
-        [{ name = "flathub"; location = "https://dl.flathub.org/repo/flathub.flatpakrepo"; }]
+      # Flathub is the default initialized by this flake.
+      [{ name = "flathub"; location = "https://dl.flathub.org/repo/flathub.flatpakrepo"; }]
+    '';
+  };
+  update = mkOption {
+    type = types.bool;
+    default = false;
+    description = lib.mdDoc ''
+      Whether to enable flatpak to upgrade applications during
+      {command}`nixos` system activation. The default is `false`
+      so that repeated invocations of {command}`nixos-rebuild switch` are idempotent.
+
+      implementation: appends --or-update to each flatpak install command.
     '';
   };
 
