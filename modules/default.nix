@@ -45,6 +45,50 @@ let
     };
   };
 
+  updateOptions = { cfg, ... }: {
+    options = {
+      onActivation = mkOption {
+        type = types.bool;
+        default = false;
+        description = lib.mdDoc ''
+          Whether to enable flatpak to upgrade applications during
+          {command}`nixos` system activation. The default is `false`
+          so that repeated invocations of {command}`nixos-rebuild switch` are idempotent.
+
+          implementation: appends --or-update to each flatpak install command.
+        '';
+      };
+      auto = mkOption {
+        type = with types; submodule ({ cfg, ... }: {
+          options = {
+            enable = mkOption {
+              type = types.bool;
+              default = false;
+              description = lib.mdDoc ''
+                Whether to enable flatpak to upgrade applications during
+                {command}`nixos` system activation, and scheudle periodic updates
+                afterwards.
+
+                implementation: registers a systemd realtime timer that fires with an OnCalendar policy.
+                If a timer had expired while a machine was off/asleep, it will fire upon resume.
+                See https://wiki.archlinux.org/title/systemd/Timers for details.
+              '';
+            };
+            onCalendar = mkOption {
+              type = types.str;
+              default = "weekly";
+              description = lib.mdDoc ''
+                Frequency of periodic updates.
+                See https://wiki.archlinux.org/title/systemd/Timers for details.
+              '';
+            };
+          };
+        });
+        default = { enable = false; };
+      };
+    };
+  };
+
 
 in
 {
@@ -76,16 +120,30 @@ in
       [{ name = "flathub"; location = "https://dl.flathub.org/repo/flathub.flatpakrepo"; }]
     '';
   };
+
   update = mkOption {
-    type = types.bool;
-    default = false;
+    type = with types; submodule updateOptions;
+    default = { onActivation = false; auto = { enable = false; onCalendar = "weekly"; }; };
     description = lib.mdDoc ''
       Whether to enable flatpak to upgrade applications during
       {command}`nixos` system activation. The default is `false`
       so that repeated invocations of {command}`nixos-rebuild switch` are idempotent.
 
-      implementation: appends --or-update to each flatpak install command.
+      Applications pinned to a specific commit hash will not be updated.
+
+      If {command}`auto.enable = true` a periodic update will be scheduled with (approximately)
+      weekly recurrence.
+
+      See https://wiki.archlinux.org/title/systemd/Timers for more information on systemd timers.
+    '';
+    example = literalExpression ''
+      # Update applications at system activation. Afterwards schedule (approximately) weekly updates.
+      update = {
+        auto = {
+            enable = true;
+            onCalendar = "weekly";
+        };
+      };
     '';
   };
-
 }
