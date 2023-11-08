@@ -16,7 +16,7 @@ in
       ];
       serviceConfig = {
         Type = "oneshot";
-        ExecStart = "${import ./installer.nix {inherit cfg pkgs; installation = installation; }}";
+        ExecStart = "${import ./installer.nix {inherit cfg pkgs lib; installation = installation; }}";
       };
     };
     systemd.timers."flatpak-managed-install" = lib.mkIf config.services.flatpak.update.auto.enable {
