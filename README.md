@@ -75,3 +75,27 @@ You can pin a specific commit setting `commit=<hash>` attribute.
 
 Rebuild your system (or home-manager) for changes to take place.
 
+### Updates
+
+Set
+```nix
+services.flatpak.update.onActivation = true;
+```
+to enable updates at system activation. The default is `false`
+so that repeated invocations of `nixos-rebuild switch` are idempotent. Applications 
+pinned to a specific commit hash will not be updated.
+
+Periodic updates can be enabled  by setting:
+```nix
+services.flatpak.update = {
+  auto = {
+    enable = true;
+    onCalendar = "weekly"; # Default value
+  };
+};
+```
+Auto updates trigger on system activation.
+
+Under the hood, updates are scheduled by realtime systemd timers. `onCalendar` accepts systemd's
+`update.auto.OnCalendar` expressions. Timers are persisted across sleep / resume cycles.
+See https://wiki.archlinux.org/title/systemd/Timers for more information. 
