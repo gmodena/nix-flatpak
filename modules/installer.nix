@@ -1,7 +1,22 @@
-{ cfg, pkgs, installation ? "system", ... }:
+{ cfg, pkgs, lib, installation ? "system", ... }:
 
 let
   updateApplications = cfg.update.onActivation || cfg.update.auto.enable;
+  applicationsToKeep = lib.strings.concatStringsSep " " (map (builtins.getAttr "appId") cfg.packages);
+  flatpakUninstallCmd = installation: {}: ''
+    APPS_TO_KEEP=("${applicationsToKeep}")
+    # Get a list of currently installed Flatpak application IDs
+    INSTALLED_APPS=$(${pkgs.flatpak}/bin/flatpak  --${installation} list --app --columns=application | ${pkgs.gawk}/bin/awk '{print ''$1}')
+
+    # Iterate through the installed apps and uninstall those not present in the to keep list
+    for APP_ID in $INSTALLED_APPS; do
+        if [[ ! " ''${APPS_TO_KEEP[@]} " =~ " ''${APP_ID} " ]]; then
+            ${pkgs.flatpak}/bin/flatpak uninstall --${installation} -y ''$APP_ID
+        fi
+    done
+
+  '';
+
   flatpakInstallCmd = installation: update: { appId, origin ? "flathub", commit ? null, ... }: ''
     ${pkgs.flatpak}/bin/flatpak --${installation} --noninteractive --no-auto-pin install \
         ${if update && commit == null then ''--or-update'' else ''''} ${origin} ${appId}
@@ -27,6 +42,10 @@ pkgs.writeShellScript "flatpak-managed-install" ''
 
   # Configure remotes
   ${mkFlatpakAddRemoteCmd installation cfg.remotes}
+
+  # Uninstall packages that have been removed from services.flatpak.packages
+  # since the previous activation.
+  ${flatpakUninstallCmd installation {}}
 
   # Install packages
   ${mkFlatpakInstallCmd installation updateApplications cfg.packages}

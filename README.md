@@ -16,7 +16,7 @@ with homebrew on nix-darwin.
 the target system state description is not exhaustive, and there's room for divergence across builds
 and rollbacks.
 For a number of desktop application I want to be able to track the lastet version, or allow them to auto update.
-For such applications, a convergent approach is a reasonable tradeoff wrt system reproducibility. YMMW.
+For such applications, a convergent approach is a reasonable tradeoff wrt system reproducibility. YMMV.
 
 Flatpak applications are installed by systemd oneshot service triggered at system activation. Depending on
 the number of applications to install, this could increase activation time significantly. 
@@ -99,3 +99,18 @@ Auto updates trigger on system activation.
 Under the hood, updates are scheduled by realtime systemd timers. `onCalendar` accepts systemd's
 `update.auto.OnCalendar` expressions. Timers are persisted across sleep / resume cycles.
 See https://wiki.archlinux.org/title/systemd/Timers for more information. 
+
+### Storage
+Flatpaks are stored out of nix store at `/var/lib/flatpak` and `${HOME}/.local/share/flatpak/` for system
+(`nixosModules`) and user (`homeManagerModules`) installation respectively. 
+Flatpaks isntallation are not generational: upon a system rebuild and rollbacks, changes in packages declaration
+will result in downloading applications anew.
+
+Keeping flatpaks and nix store orthogonal is an explicit design choice, dictate by my use cases:
+1. I want to track the latest version of all installed applications.
+2. I am happy to trade network for storage.
+
+YMMV.
+
+If you need generational builds, [declarative-flatpak](https://github.com/GermanBread/declarative-flatpak)
+might be a better fit.

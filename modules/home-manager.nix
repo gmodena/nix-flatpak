@@ -21,7 +21,7 @@ in
       };
       Service = {
         Type = "oneshot";
-        ExecStart = "${import ./installer.nix {inherit cfg pkgs; installation = installation; }}";
+        ExecStart = "${import ./installer.nix {inherit cfg pkgs lib; installation = installation; }}";
       };
     };
 
