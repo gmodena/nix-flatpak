@@ -40,7 +40,7 @@ in
         export PATH=${lib.makeBinPath (with pkgs; [ systemd ])}:$PATH
 
         $DRY_RUN_CMD systemctl is-system-running -q && \
-          systemctl --user start flatpak-managed.service || true
+          systemctl --user start flatpak-managed-install.service || true
       '';
     };
 
