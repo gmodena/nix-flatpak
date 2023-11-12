@@ -21,6 +21,19 @@ For such applications, a convergent approach is a reasonable tradeoff wrt system
 Flatpak applications are installed by systemd oneshot service triggered at system activation. Depending on
 the number of applications to install, this could increase activation time significantly. 
 
+## Releases
+
+This project is released as a [flake](https://nixos.wiki/wiki/Flakes). 
+Releases are tagged with [semantic versioning](https://semver.org/). Versions below `1.0.0` are considered early, development, releases.
+Users can track a version by passing its tag as `ref`
+```nix
+...
+nix-flatpak.url = "github:gmodena/nix-flatpak/?ref=v0.1.0";
+...
+```
+
+The `main` branch is considered unstable, and _might_ break installs.
+
 ## Getting Started
 
 Enable flatpak in `configuration.nix`:
@@ -35,7 +48,7 @@ Using flake, installing `nix-flatpak` as a NixOs module would looks something li
 {
   inputs = {
     # ...
-    nix-flatpak.url = "github:gmodena/nix-flatpak/main";
+    nix-flatpak.url = "github:gmodena/nix-flatpak/main"; # unstable branch. Use github:gmodena/nix-flatpak/?ref=<tag> to pin releases.
   };
 
   outputs = { nix-flatpak, ... }: {
