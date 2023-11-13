@@ -1,13 +1,20 @@
-{ config, lib, pkgs, osConfig, ... }:
+{ config, lib, pkgs, ... }@args:
 let
   cfg = config.services.flatpak;
   installation = "user";
 in
 {
 
-  options.services.flatpak = import ./options.nix { inherit cfg lib pkgs; };
+  options.services.flatpak = (import ./options.nix { inherit cfg lib pkgs; })
+  // {
+    enable = with lib; mkOption {
+      type = types.bool;
+      default = args.osConfig.services.flatpak.enable or false;
+      description = mkDoc "Whether to enable nix-flatpak declarative flatpak management in home-manager.";
+    };
+  };
 
-  config = lib.mkIf osConfig.services.flatpak.enable {
+  config = lib.mkIf (config.services.flatpak.enable) {
     systemd.user.services."flatpak-managed-install" = {
       Unit = {
         After = [
