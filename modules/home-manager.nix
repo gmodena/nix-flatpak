@@ -5,7 +5,7 @@ let
 in
 {
 
-  options.services.flatpak = (import ./options.nix { inherit cfg lib pkgs; })
+  options.services.flatpak = (import ./options.nix { inherit lib pkgs; })
   // {
     enable = with lib; mkOption {
       type = types.bool;
@@ -14,7 +14,7 @@ in
     };
   };
 
-  config = lib.mkIf (config.services.flatpak.enable) {
+  config = lib.mkIf config.services.flatpak.enable {
     systemd.user.services."flatpak-managed-install" = {
       Unit = {
         After = [
@@ -28,7 +28,7 @@ in
       };
       Service = {
         Type = "oneshot";
-        ExecStart = "${import ./installer.nix {inherit cfg pkgs lib; installation = installation; }}";
+        ExecStart = import ./installer.nix { inherit cfg pkgs lib installation; };
       };
     };
 
@@ -36,7 +36,7 @@ in
       Unit.Description = "flatpak update schedule";
       Timer = {
         Unit = "flatpak-managed-install";
-        OnCalendar = "${config.services.flatpak.update.auto.onCalendar}";
+        OnCalendar = config.services.flatpak.update.auto.onCalendar;
         Persistent = "true";
       };
       Install.WantedBy = [ "timers.target" ];
