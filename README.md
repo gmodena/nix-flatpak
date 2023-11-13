@@ -48,7 +48,7 @@ Using flake, installing `nix-flatpak` as a NixOs module would looks something li
 {
   inputs = {
     # ...
-    nix-flatpak.url = "github:gmodena/nix-flatpak/main"; # unstable branch. Use github:gmodena/nix-flatpak/?ref=<tag> to pin releases.
+    nix-flatpak.url = "github:gmodena/nix-flatpak"; # unstable branch. Use github:gmodena/nix-flatpak/?ref=<tag> to pin releases.
   };
 
   outputs = { nix-flatpak, ... }: {
@@ -72,7 +72,9 @@ By default `nix-flatpak` will add the flathub remote. Remotes can be manually
 configured via the `services.flatpak.remotes` option:
 
 ```nix
-services.flatpak.remotes = [{ name = "flathub-beta"; location = "https://flathub.org/beta-repo/flathub-beta.flatpakrepo"; }];
+services.flatpak.remotes = [{
+  name = "flathub-beta"; location = "https://flathub.org/beta-repo/flathub-beta.flatpakrepo";
+}];
 ```
 
 ### Packages
@@ -100,11 +102,9 @@ pinned to a specific commit hash will not be updated.
 
 Periodic updates can be enabled  by setting:
 ```nix
-services.flatpak.update = {
-  auto = {
-    enable = true;
-    onCalendar = "weekly"; # Default value
-  };
+services.flatpak.update.auto = {
+  enable = true;
+  onCalendar = "weekly"; # Default value
 };
 ```
 Auto updates trigger on system activation.
