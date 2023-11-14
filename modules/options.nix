@@ -1,9 +1,7 @@
-{ cfg, lib, pkgs, ... }:
+{ lib, ... }:
 with lib;
 let
-  cfg = config.services.flatpak;
-
-  remoteOptions = { cfg, ... }: {
+  remoteOptions = _: {
     options = {
       name = mkOption {
         type = types.str;
@@ -24,7 +22,7 @@ let
     };
   };
 
-  packageOptions = { cfg, ... }: {
+  packageOptions = _: {
     options = {
       appId = mkOption {
         type = types.str;
@@ -45,7 +43,7 @@ let
     };
   };
 
-  updateOptions = { cfg, ... }: {
+  updateOptions = _: {
     options = {
       onActivation = mkOption {
         type = types.bool;
@@ -59,7 +57,7 @@ let
         '';
       };
       auto = mkOption {
-        type = with types; submodule ({ cfg, ... }: {
+        type = with types; submodule (_: {
           options = {
             enable = mkOption {
               type = types.bool;
