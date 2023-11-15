@@ -15,7 +15,7 @@ with homebrew on nix-darwin.
 `nix-flatpak` follows a [convergent mode](https://flyingcircus.io/blog/thoughts-on-systems-management-methods/) approach to package management (described in [this thread](https://discourse.nixos.org/t/feature-discussion-declarative-flatpak-configuration/26767/2)):
 the target system state description is not exhaustive, and there's room for divergence across builds
 and rollbacks.
-For a number of desktop application I want to be able to track the lastet version, or allow them to auto update.
+For a number of desktop application I want to be able to track the latest version, or allow them to auto update.
 For such applications, a convergent approach is a reasonable tradeoff wrt system reproducibility. YMMV.
 
 Flatpak applications are installed by systemd oneshot service triggered at system activation. Depending on
@@ -42,7 +42,7 @@ services.flatpak.enable = true;
 ```
 
 Import the module (`nixosModules.nix-flatpak` or `homeManagerModules.nix-flatpak`).
-Using flake, installing `nix-flatpak` as a NixOs module would looks something like this:
+Using flake, installing `nix-flatpak` as a NixOs module would look something like this:
 
 ```nix
 {
@@ -116,7 +116,7 @@ See https://wiki.archlinux.org/title/systemd/Timers for more information.
 ### Storage
 Flatpaks are stored out of nix store at `/var/lib/flatpak` and `${HOME}/.local/share/flatpak/` for system
 (`nixosModules`) and user (`homeManagerModules`) installation respectively. 
-Flatpaks isntallation are not generational: upon a system rebuild and rollbacks, changes in packages declaration
+Flatpaks installation are not generational: upon a system rebuild and rollbacks, changes in packages declaration
 will result in downloading applications anew.
 
 Keeping flatpaks and nix store orthogonal is an explicit design choice, dictate by my use cases:
