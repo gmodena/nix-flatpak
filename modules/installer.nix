@@ -1,20 +1,28 @@
 { cfg, pkgs, lib, installation ? "system", ... }:
 
 let
+  gcroots =
+    if (installation == "system")
+    then "/nix/var/nix/gcroots/"
+    else "\${XDG_STATE_HOME:-$HOME/.local/state}/home-manager/gcroots";
+  stateFile = pkgs.writeText "flatpak-state.json" (builtins.toJSON {
+    packages = map (builtins.getAttr "appId") cfg.packages;
+  });
+  statePath = "${gcroots}/${stateFile.name}";
+
   updateApplications = cfg.update.onActivation || cfg.update.auto.enable;
-  applicationsToKeep = lib.strings.concatStringsSep " " (map (builtins.getAttr "appId") cfg.packages);
   flatpakUninstallCmd = installation: {}: ''
-    APPS_TO_KEEP=("${applicationsToKeep}")
-    # Get a list of currently installed Flatpak application IDs
-    INSTALLED_APPS=$(${pkgs.flatpak}/bin/flatpak  --${installation} list --app --columns=application | ${pkgs.gawk}/bin/awk '{print ''$1}')
-
-    # Iterate through the installed apps and uninstall those not present in the to keep list
-    for APP_ID in $INSTALLED_APPS; do
-        if [[ ! " ''${APPS_TO_KEEP[@]} " =~ " ''${APP_ID} " ]]; then
-            ${pkgs.flatpak}/bin/flatpak uninstall --${installation} -y ''$APP_ID
-        fi
-    done
-
+    # Can't uninstall if we don't know the old state.
+    if [[ -f ${statePath} ]]; then
+      # Uninstall all packages that are present in the old state but not the new one.
+      ${pkgs.jq}/bin/jq -r -n \
+        --slurpfile old ${statePath} \
+        --slurpfile new ${stateFile} \
+        '($old[].packages - $new[].packages)[]' \
+        | while read -r APP_ID; do
+            ${pkgs.flatpak}/bin/flatpak uninstall --${installation} -y $APP_ID
+          done
+    fi
   '';
 
   flatpakInstallCmd = installation: update: { appId, origin ? "flathub", commit ? null, ... }: ''
@@ -49,4 +57,7 @@ pkgs.writeShellScript "flatpak-managed-install" ''
 
   # Install packages
   ${mkFlatpakInstallCmd installation updateApplications cfg.packages}
+
+  # Save state
+  ln -sf ${stateFile} ${statePath}
 ''

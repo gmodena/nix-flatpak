@@ -43,7 +43,7 @@ in
     };
 
     home.activation = {
-      start-service = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+      flatpak-managed-install = lib.hm.dag.entryAfter [ "reloadSystemd" ] ''
         export PATH=${lib.makeBinPath (with pkgs; [ systemd ])}:$PATH
 
         $DRY_RUN_CMD systemctl is-system-running -q && \
