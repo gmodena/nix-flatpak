@@ -144,4 +144,14 @@ in
       };
     '';
   };
+
+  uninstallUnmanagedPackages = mkOption {
+    type = with types; bool;
+    default = false;
+    description = lib.mdDoc ''
+      If enabled, uninstall packages not managed by this module on activation.
+      I.e. if packages were installed via Flatpak directly instead of this module,
+      they would get uninstalled on the next activation
+    '';
+  };
 }

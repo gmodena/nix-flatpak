@@ -1,20 +1,42 @@
 { cfg, pkgs, lib, installation ? "system", ... }:
 
 let
+  # Put the state file in the `gcroots` folder of the respective installation,
+  # which prevents it from being garbage collected. This could probably be
+  # improved in the future if there are better conventions for how this should
+  # be handled. Right now it introduces a small issue of the state file derivation
+  # not being garbage collected even when this module is removed. You can find
+  # more details on this design drawback in PR#23
+  gcroots =
+    if (installation == "system")
+    then "/nix/var/nix/gcroots/"
+    else "\${XDG_STATE_HOME:-$HOME/.local/state}/home-manager/gcroots";
+  stateFile = pkgs.writeText "flatpak-state.json" (builtins.toJSON {
+    packages = map (builtins.getAttr "appId") cfg.packages;
+  });
+  statePath = "${gcroots}/${stateFile.name}";
+
   updateApplications = cfg.update.onActivation || cfg.update.auto.enable;
-  applicationsToKeep = lib.strings.concatStringsSep " " (map (builtins.getAttr "appId") cfg.packages);
+
+  handleUnmanagedPackagesCmd = installation: uninstallUnmanagedPackages:
+    lib.optionalString uninstallUnmanagedPackages ''
+      # Add all installed Flatpak packages to the old state, so only the managed ones (new state) will be kept
+      INSTALLED_PACKAGES=$(${pkgs.flatpak}/bin/flatpak --${installation} list --app --columns=application)
+      OLD_STATE=$(${pkgs.jq}/bin/jq -r -n \
+        --argjson old "$OLD_STATE" \
+        --arg installed_packages "$INSTALLED_PACKAGES" \
+        '$old + { "packages" : $installed_packages | split("\n") }')
+    '';
+
   flatpakUninstallCmd = installation: {}: ''
-    APPS_TO_KEEP=("${applicationsToKeep}")
-    # Get a list of currently installed Flatpak application IDs
-    INSTALLED_APPS=$(${pkgs.flatpak}/bin/flatpak  --${installation} list --app --columns=application | ${pkgs.gawk}/bin/awk '{print ''$1}')
-
-    # Iterate through the installed apps and uninstall those not present in the to keep list
-    for APP_ID in $INSTALLED_APPS; do
-        if [[ ! " ''${APPS_TO_KEEP[@]} " =~ " ''${APP_ID} " ]]; then
-            ${pkgs.flatpak}/bin/flatpak uninstall --${installation} -y ''$APP_ID
-        fi
-    done
-
+    # Uninstall all packages that are present in the old state but not the new one
+    ${pkgs.jq}/bin/jq -r -n \
+      --argjson old "$OLD_STATE" \
+      --argjson new "$NEW_STATE" \
+      '($old.packages - $new.packages)[]' \
+      | while read -r APP_ID; do
+          ${pkgs.flatpak}/bin/flatpak uninstall --${installation} -y $APP_ID
+        done
   '';
 
   flatpakInstallCmd = installation: update: { appId, origin ? "flathub", commit ? null, ... }: ''
@@ -40,6 +62,17 @@ pkgs.writeShellScript "flatpak-managed-install" ''
   # This script is triggered at build time by a transient systemd unit.
   set -eu
 
+  # Setup state variables
+  NEW_STATE=$(cat ${stateFile})
+  if [[ -f ${statePath} ]]; then
+    OLD_STATE=$(cat ${statePath})
+  else
+    OLD_STATE={}
+  fi
+
+  # Handle unmanaged packages
+  ${handleUnmanagedPackagesCmd installation cfg.uninstallUnmanagedPackages}
+
   # Configure remotes
   ${mkFlatpakAddRemoteCmd installation cfg.remotes}
 
@@ -49,4 +82,7 @@ pkgs.writeShellScript "flatpak-managed-install" ''
 
   # Install packages
   ${mkFlatpakInstallCmd installation updateApplications cfg.packages}
+
+  # Save state
+  ln -sf ${stateFile} ${statePath}
 ''
