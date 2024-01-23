@@ -30,13 +30,16 @@ let
 
   flatpakUninstallCmd = installation: {}: ''
     # Uninstall all packages that are present in the old state but not the new one
-    ${pkgs.jq}/bin/jq -r -n \
-      --argjson old "$OLD_STATE" \
-      --argjson new "$NEW_STATE" \
-      '($old.packages - $new.packages)[]' \
+    # $OLD_STATE and $NEW_STATE are globals, declared in the output of pkgs.writeShellScript.
+    if [ "$OLD_STATE" != "{}" ]; then
+      ${pkgs.jq}/bin/jq -r -n \
+        --argjson old "$OLD_STATE" \
+        --argjson new "$NEW_STATE" \
+        '($old.packages - $new.packages)[]' \
       | while read -r APP_ID; do
           ${pkgs.flatpak}/bin/flatpak uninstall --${installation} -y $APP_ID
-        done
+      done
+    fi
   '';
 
   flatpakInstallCmd = installation: update: { appId, origin ? "flathub", commit ? null, ... }: ''
