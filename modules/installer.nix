@@ -63,9 +63,9 @@ pkgs.writeShellScript "flatpak-managed-install" ''
   set -eu
 
   # Setup state variables
-  NEW_STATE=$(cat ${stateFile})
+  NEW_STATE=$(${pkgs.coreutils}/bin/cat ${stateFile})
   if [[ -f ${statePath} ]]; then
-    OLD_STATE=$(cat ${statePath})
+    OLD_STATE=$(${pkgs.coreutils}/bin/cat ${statePath})
   else
     OLD_STATE={}
   fi
