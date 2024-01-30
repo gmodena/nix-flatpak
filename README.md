@@ -8,7 +8,7 @@ NixOs and home-manager modules are provided for system wide or user flatpaks ins
 ## Background
 
 This repository contains experimental code inspired by  Martin Wimpress' [Blending NixOS with Flathub for friends and family](https://talks.nixcon.org/nixcon-2023/talk/MNUFFP/)
-talk at NixCon 2023. I like the idea of managing applications the say way I do
+talk at NixCon 2023. I like the idea of managing applications the same way I do
 with homebrew on nix-darwin.
 
 `nix-flatpak` follows a [convergent mode](https://flyingcircus.io/blog/thoughts-on-systems-management-methods/) approach to package management (described in [this thread](https://discourse.nixos.org/t/feature-discussion-declarative-flatpak-configuration/26767/2)):
