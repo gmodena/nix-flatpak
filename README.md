@@ -1,4 +1,3 @@
-[![experimental](http://badges.github.io/stability-badges/dist/experimental.svg)](http://github.com/badges/stability-badges)
 [![system build](https://github.com/gmodena/nix-flatpak/actions/workflows/test.yml/badge.svg)](https://github.com/gmodena/nix-flatpak/actions/workflows/test.yml)
 
 # nix-flatpak
@@ -127,3 +126,16 @@ YMMV.
 
 If you need generational builds, [declarative-flatpak](https://github.com/GermanBread/declarative-flatpak)
 might be a better fit.
+
+# Known issues
+
+A couple of things to be aware of when working with `nix-flatpak`.
+
+## Infinte recusion in home-manager imports
+
+Users have reported an infinite recursion stacktrace when importing an home-manager module outside of where home-manager
+itself was imported.
+
+To work around this issue, you should avoid nesting home-manager modules. This means that when you are structuring your configuration, make sure that you do not have home-manager modules imported within each other in a way that could lead to circular imports.
+
+You can follow the discussions and updates on issue [#25](https://github.com/gmodena/nix-flatpak/issues/25) to stay informed about any resolutions or workarounds.
