@@ -119,6 +119,23 @@ in
     '';
   };
 
+  overrides = mkOption {
+    type = with types; attrsOf (attrsOf (attrsOf (either str (listOf str))));
+    default = {};
+    description = lib.mdDoc ''
+      Applies the provided attribute set into a Flatpak overrides file with the
+      same structure, keeping externally applied changes
+    '';
+    example = literalExpression ''
+      {
+        # Array entries will be merged with externally applied values
+        "com.visualstudio.code".Context.sockets = ["wayland" "!x11" "!fallback-x11"];
+        # String entries will override externally applied values
+        global.Environment.LC_ALL = "C.UTF-8";
+      };
+    '';
+  };
+
   update = mkOption {
     type = with types; submodule updateOptions;
     default = { onActivation = false; auto = { enable = false; onCalendar = "weekly"; }; };
