@@ -18,17 +18,18 @@ in
     systemd.user.services."flatpak-managed-install" = {
       Unit = {
         After = [
-          "network.target"
+          "multi-user.target" # ensures that network & connectivity have been setup.
         ];
       };
       Install = {
         WantedBy = [
-          "default.target"
+          "default.target" # multi-user target with a GUI. For a desktop, this is typically going to be the graphical.target
         ];
       };
       Service = {
-        Type = "oneshot";
+        Type = "oneshot"; # TODO: should this be an async startup, to avoid blocking on network at boot ?
         ExecStart = import ./installer.nix { inherit cfg pkgs lib installation; };
+        RemainAfterExit = "yes";
       };
     };
 

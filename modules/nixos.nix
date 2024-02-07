@@ -8,14 +8,15 @@ in
 
   config = lib.mkIf config.services.flatpak.enable {
     systemd.services."flatpak-managed-install" = {
-      wants = [
-        "network-online.target"
-      ];
       wantedBy = [
-        "multi-user.target"
+        "default.target" # multi-user target with a GUI. For a desktop, this is typically going to be the graphical.target
+      ];
+      after = [
+        "multi-user.target" # ensures that network & connectivity have been setup.
       ];
       serviceConfig = {
-        Type = "oneshot";
+        Type = "oneshot"; # TODO: should this be an async startup, to avoid blocking on network at boot ?
+        RemainAfterExit = "yes";
         ExecStart = import ./installer.nix { inherit cfg pkgs lib installation; };
       };
     };
