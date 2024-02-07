@@ -75,6 +75,22 @@ services.flatpak.remotes = [{
   name = "flathub-beta"; location = "https://flathub.org/beta-repo/flathub-beta.flatpakrepo";
 }];
 ```
+Note that this declaration will override the default remote config value (`flathub`).
+If you want to keep using `flathub`, you should explicitly declare it in the
+`services.flatpak.remotes` option.
+
+Alternatively, it is possible to merge declared remotes with the default one with `lib.mkDefaultOption`.
+```nix
+  services.flatpak.remotes = lib.mkOptionDefault [{
+    name = "flathub-beta";
+    location = "https://flathub.org/beta-repo/flathub-beta.flatpakrepo";
+  }];
+```
+
+**Note**: currently no state management has been implemented for `remotes`.
+Removing a remote for the config declaration won't delete it from the system. 
+A manual `flatpak remote-delete [...]` is required. Improving remote management
+is planned for future releases.
 
 ### Packages
 Declare packages to install with:
