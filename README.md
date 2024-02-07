@@ -64,7 +64,7 @@ Using flake, installing `nix-flatpak` as a NixOs module would look something lik
 ```
 
 Depending on how config and inputs are derived `homeManagerModules` import can be flaky. Here's an example of how `homeManagerModules` is imported on my nixos systems config in [modules/home-manager/desktop/nixos/default.nix](https://github.com/gmodena/config/blob/5b3c1ce979881700f9f5ead88f2827f06143512f/modules/home-manager/desktop/nixos/default.nix#L17). `flake-inputs` is a special extra arg set in the repo `flake.nix`
-[mkNixosConfiguration]([https://github.com/gmodena/config/blob/main/flake.nix#L29](https://github.com/gmodena/config/blob/5b3c1ce979881700f9f5ead88f2827f06143512f/flake.nix#L29).
+[mkNixosConfiguration](https://github.com/gmodena/config/blob/5b3c1ce979881700f9f5ead88f2827f06143512f/flake.nix#L29).
  
 ### Remotes
 By default `nix-flatpak` will add the flathub remote. Remotes can be manually
