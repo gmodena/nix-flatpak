@@ -13,7 +13,7 @@
       memorySize = 1024; # Use 1024MiB memory.
       cores = 2;
       graphics = true; # Boot the vm in a window.
-      diskSize = 1000; # Virtual machine disk size in MB.
+      diskSize = 15000; # Virtual machine disk size in MB.
     };
   };
 
@@ -28,7 +28,7 @@
     vim
   ];
   services.xserver.enable = true;
-  
+
   # Enable the GNOME Desktop Environment.
   services.xserver.displayManager.gdm.enable = true;
   services.xserver.desktopManager.gnome.enable = true;
@@ -49,6 +49,9 @@
       #      xdg-desktop-portal-gtk
     ];
   };
+
+  # TODO: remove me
+  services.flatpak.enable = true;
 
   system.stateVersion = "23.11";
 }
