@@ -47,7 +47,7 @@ let
     else "\${XDG_DATA_HOME:-$HOME/.local/share}/flatpak/overrides";
   flatpakOverridesCmd = installation: {}: ''
     # Update overrides that are managed by this module (both old and new)
-    mkdir -p ${overridesDir}
+    ${pkgs.coreutils}/bin/mkdir -p ${overridesDir}
     ${pkgs.jq}/bin/jq -r -n \
       --argjson old "$OLD_STATE" \
       --argjson new "$NEW_STATE" \
@@ -57,7 +57,7 @@ let
           
           # Transform the INI-like Flatpak overrides file into a workable JSON
           if [[ -f $OVERRIDES_PATH ]]; then
-            ACTIVE=$(cat $OVERRIDES_PATH \
+            ACTIVE=$(${pkgs.coreutils}/bin/cat $OVERRIDES_PATH \
               | ${pkgs.jc}/bin/jc --ini \
               | ${pkgs.jq}/bin/jq 'map_values(map_values(split(";") | select(. != []) // ""))')
           else
@@ -123,5 +123,5 @@ pkgs.writeShellScript "flatpak-managed-install" ''
   ${flatpakOverridesCmd installation {}}
 
   # Save state
-  ln -sf ${stateFile} ${statePath}
+  ${pkgs.coreutils}/bin/ln -sf ${stateFile} ${statePath}
 ''
