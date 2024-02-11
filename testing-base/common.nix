@@ -50,8 +50,5 @@
     ];
   };
 
-  # TODO: remove me
-  services.flatpak.enable = true;
-
   system.stateVersion = "23.11";
 }
