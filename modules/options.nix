@@ -93,7 +93,7 @@ in
   packages = mkOption {
     type = with types; listOf (coercedTo str (appId: { inherit appId; }) (submodule packageOptions));
     default = [ ];
-    description = mkDoc ''
+    description = lib.mdDoc ''
       Declares a list of applications to install.
     '';
     example = literalExpression ''
@@ -110,7 +110,7 @@ in
   remotes = mkOption {
     type = with types; listOf (coercedTo str (name: { inherit name location; }) (submodule remoteOptions));
     default = [{ name = "flathub"; location = "https://dl.flathub.org/repo/flathub.flatpakrepo"; }];
-    description = mkDoc ''
+    description = lib.mdDoc ''
       Declare a list of flatpak repositories.
     '';
     example = literalExpression ''
