@@ -5,17 +5,17 @@ let
     options = {
       name = mkOption {
         type = types.str;
-        description = lib.mdDoc "The remote name";
+        description = lib.mdDoc "The remote name. This name is what will be used when installing flatpak(s) from this repo.";
         default = "flathub";
       };
       location = mkOption {
         type = types.str;
-        description = lib.mdDoc "The remote location";
+        description = lib.mdDoc "The remote location. Must be a valid URL of a flatpak repo.";
         default = "https://dl.flathub.org/repo/flathub.flatpakrepo";
       };
       args = mkOption {
         type = types.nullOr types.str;
-        description = "Extra arguments to pass to flatpak remote-add";
+        description = "Extra arguments to pass to flatpak remote-add.";
         example = [ "--verbose" ];
         default = null;
       };
@@ -31,14 +31,14 @@ let
 
       commit = mkOption {
         type = types.nullOr types.str;
-        description = lib.mdDoc "Hash id of the app commit to install";
+        description = lib.mdDoc "Hash id of the app commit to install.";
         default = null;
       };
 
       origin = mkOption {
         type = types.str;
         default = "flathub";
-        description = lib.mdDoc "App repository origin (default: flathub)";
+        description = lib.mdDoc "App repository origin (default: flathub).";
       };
     };
   };
@@ -52,7 +52,7 @@ let
           Whether to enable flatpak to upgrade applications during
           {command}`nixos` system activation. The default is `false`
           so that repeated invocations of {command}`nixos-rebuild switch` are idempotent.
-          
+
           implementation: appends --or-update to each flatpak install command.
         '';
       };
@@ -84,8 +84,7 @@ let
         });
         default = { enable = false; };
         description = lib.mdDoc ''
-          Test fix
-          test 2
+          Value(s) in this Nix set are used to configure the behavior of the auto updater.
         '';
       };
     };
@@ -128,7 +127,7 @@ in
     default = {};
     description = lib.mdDoc ''
       Applies the provided attribute set into a Flatpak overrides file with the
-      same structure, keeping externally applied changes
+      same structure, keeping externally applied changes.
     '';
     example = literalExpression ''
       {
@@ -172,7 +171,7 @@ in
     description = lib.mdDoc ''
       If enabled, uninstall packages not managed by this module on activation.
       I.e. if packages were installed via Flatpak directly instead of this module,
-      they would get uninstalled on the next activation
+      they would get uninstalled on the next activation.
     '';
   };
 }
