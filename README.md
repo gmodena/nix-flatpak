@@ -63,6 +63,9 @@ Using flake, installing `nix-flatpak` as a NixOs module would look something lik
 
 ```
 
+See [flake.nix](https://github.com/gmodena/nix-flatpak/blob/main/testing-base/flake.nix) in [testing-base](https://github.com/gmodena/nix-flatpak/tree/main/testing-base) for examples of setting up `nix-flatpak` as a NixOs and HomeManager module.
+
+## Notes on HomeManager 
 Depending on how config and inputs are derived `homeManagerModules` import can be flaky. Here's an example of how `homeManagerModules` is imported on my nixos systems config in [modules/home-manager/desktop/nixos/default.nix](https://github.com/gmodena/config/blob/5b3c1ce979881700f9f5ead88f2827f06143512f/modules/home-manager/desktop/nixos/default.nix#L17). `flake-inputs` is a special extra arg set in the repo `flake.nix`
 [mkNixosConfiguration](https://github.com/gmodena/config/blob/5b3c1ce979881700f9f5ead88f2827f06143512f/flake.nix#L29).
  
