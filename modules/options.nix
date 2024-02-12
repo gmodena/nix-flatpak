@@ -52,7 +52,7 @@ let
           Whether to enable flatpak to upgrade applications during
           {command}`nixos` system activation. The default is `false`
           so that repeated invocations of {command}`nixos-rebuild switch` are idempotent.
-
+          
           implementation: appends --or-update to each flatpak install command.
         '';
       };
