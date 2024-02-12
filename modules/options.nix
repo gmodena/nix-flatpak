@@ -83,7 +83,9 @@ let
           };
         });
         default = { enable = false; };
-		description = lib.mdDoc "Test fix";
+        description = lib.mdDoc ''
+          Test fix
+        '';
       };
     };
   };

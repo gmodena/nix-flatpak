@@ -128,7 +128,7 @@ services.flatpak.update.auto = {
 Auto updates trigger on system activation.
 
 Under the hood, updates are scheduled by realtime systemd timers. `onCalendar` accepts systemd's
-`update.auto.OnCalendar` expressions. Timers are persisted across sleep / resume cycles.
+`update.auto.onCalendar` expressions. Timers are persisted across sleep / resume cycles.
 See https://wiki.archlinux.org/title/systemd/Timers for more information. 
 
 ### Storage
