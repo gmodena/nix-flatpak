@@ -29,7 +29,6 @@ in
       Service = {
         Type = "oneshot"; # TODO: should this be an async startup, to avoid blocking on network at boot ?
         ExecStart = import ./installer.nix { inherit cfg pkgs lib installation; };
-        RemainAfterExit = "yes";
       };
     };
 
