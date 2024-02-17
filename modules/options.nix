@@ -5,17 +5,17 @@ let
     options = {
       name = mkOption {
         type = types.str;
-        description = lib.mdDoc "The remote name";
+        description = lib.mdDoc "The remote name. This name is what will be used when installing flatpak(s) from this repo.";
         default = "flathub";
       };
       location = mkOption {
         type = types.str;
-        description = lib.mdDoc "The remote location";
+        description = lib.mdDoc "The remote location. Must be a valid URL of a flatpak repo.";
         default = "https://dl.flathub.org/repo/flathub.flatpakrepo";
       };
       args = mkOption {
         type = types.nullOr types.str;
-        description = "Extra arguments to pass to flatpak remote-add";
+        description = "Extra arguments to pass to flatpak remote-add.";
         example = [ "--verbose" ];
         default = null;
       };
@@ -31,14 +31,14 @@ let
 
       commit = mkOption {
         type = types.nullOr types.str;
-        description = lib.mdDoc "Hash id of the app commit to install";
+        description = lib.mdDoc "Hash id of the app commit to install.";
         default = null;
       };
 
       origin = mkOption {
         type = types.str;
         default = "flathub";
-        description = lib.mdDoc "App repository origin (default: flathub)";
+        description = lib.mdDoc "App repository origin (default: flathub).";
       };
     };
   };
@@ -52,7 +52,7 @@ let
           Whether to enable flatpak to upgrade applications during
           {command}`nixos` system activation. The default is `false`
           so that repeated invocations of {command}`nixos-rebuild switch` are idempotent.
-
+          
           implementation: appends --or-update to each flatpak install command.
         '';
       };
@@ -66,7 +66,7 @@ let
                 Whether to enable flatpak to upgrade applications during
                 {command}`nixos` system activation, and scheudle periodic updates
                 afterwards.
-
+                
                 implementation: registers a systemd realtime timer that fires with an OnCalendar policy.
                 If a timer had expired while a machine was off/asleep, it will fire upon resume.
                 See https://wiki.archlinux.org/title/systemd/Timers for details.
@@ -83,6 +83,9 @@ let
           };
         });
         default = { enable = false; };
+        description = lib.mdDoc ''
+          Value(s) in this Nix set are used to configure the behavior of the auto updater.
+        '';
       };
     };
   };
@@ -93,7 +96,7 @@ in
   packages = mkOption {
     type = with types; listOf (coercedTo str (appId: { inherit appId; }) (submodule packageOptions));
     default = [ ];
-    description = mkDoc ''
+    description = lib.mdDoc ''
       Declares a list of applications to install.
     '';
     example = literalExpression ''
@@ -110,7 +113,7 @@ in
   remotes = mkOption {
     type = with types; listOf (coercedTo str (name: { inherit name location; }) (submodule remoteOptions));
     default = [{ name = "flathub"; location = "https://dl.flathub.org/repo/flathub.flatpakrepo"; }];
-    description = mkDoc ''
+    description = lib.mdDoc ''
       Declare a list of flatpak repositories.
     '';
     example = literalExpression ''
@@ -124,7 +127,7 @@ in
     default = {};
     description = lib.mdDoc ''
       Applies the provided attribute set into a Flatpak overrides file with the
-      same structure, keeping externally applied changes
+      same structure, keeping externally applied changes.
     '';
     example = literalExpression ''
       {
@@ -143,12 +146,12 @@ in
       Whether to enable flatpak to upgrade applications during
       {command}`nixos` system activation. The default is `false`
       so that repeated invocations of {command}`nixos-rebuild switch` are idempotent.
-
+      
       Applications pinned to a specific commit hash will not be updated.
-
+      
       If {command}`auto.enable = true` a periodic update will be scheduled with (approximately)
       weekly recurrence.
-
+      
       See https://wiki.archlinux.org/title/systemd/Timers for more information on systemd timers.
     '';
     example = literalExpression ''
@@ -168,7 +171,7 @@ in
     description = lib.mdDoc ''
       If enabled, uninstall packages not managed by this module on activation.
       I.e. if packages were installed via Flatpak directly instead of this module,
-      they would get uninstalled on the next activation
+      they would get uninstalled on the next activation.
     '';
   };
 }
