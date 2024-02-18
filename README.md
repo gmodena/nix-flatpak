@@ -189,8 +189,6 @@ Package overrides can be declared via `services.flatpak.overrides`. Following is
 }
 ```
 
-Implementation details have been discussed in 
-
 # Known issues
 
 A couple of things to be aware of when working with `nix-flatpak`.
