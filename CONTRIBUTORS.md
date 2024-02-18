@@ -11,3 +11,8 @@ A list of folks that helped with this project.
     * Fixed broken link and typo.
   * Fixed Broken Build:
     * Fixed build issue related to option descriptions.
+* [Tomas Zaluckij](https://github.com/Tomaszal)
+  * Add support managing packages installed outside of `nix-flatpak` (`uninstallUnmanagedPackages` option).
+  * Add override management.
+* [Lillecarl](https://github.com/Lillecarl)
+  * Bugfix: missing path to coreutils commands.
