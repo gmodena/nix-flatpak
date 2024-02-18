@@ -108,6 +108,14 @@ You can pin a specific commit setting `commit=<hash>` attribute.
 
 Rebuild your system (or home-manager) for changes to take place.
 
+##### Unmanaged packages
+
+By default `nix-flatpak` will only managed (install/uninstall/update) packages declared in the
+`services.flatpak.packages`. Flatpak installed by the command line of app stores won't be affected.
+
+Set `services.flatpak.uninstallUnmanagedPackages = true` to alter this behaviour, and have `nix-flatpak` manage the
+lifecyle of all flatpaks installed on the system.
+
 ### Updates
 
 Set
@@ -145,6 +153,43 @@ YMMV.
 
 If you need generational builds, [declarative-flatpak](https://github.com/GermanBread/declarative-flatpak)
 might be a better fit.
+
+### Overrides
+
+Package overrides can be declared via `services.flatpak.overrides`. Following is a usage example:
+```
+{
+  services.flatpak.overrides = {
+    global = {
+      # Force Wayland by default
+      Context.sockets = ["wayland" "!x11" "!fallback-x11"];
+
+      Environment = {
+        # Fix un-themed cursor in some Wayland apps
+        XCURSOR_PATH = "/run/host/user-share/icons:/run/host/share/icons";
+
+        # Force correct theme for some GTK apps
+        GTK_THEME = "Adwaita:dark";
+      };
+    };
+
+    "com.visualstudio.code".Context = {
+      filesystems = [
+        "xdg-config/git:ro" # Expose user Git config
+        "/run/current-system/sw/bin:ro" # Expose NixOS managed software
+      ];
+      sockets = [
+        "gpg-agent" # Expose GPG agent
+        "pcsc" # Expose smart cards (i.e. YubiKey)
+      ];
+    };
+
+    "org.onlyoffice.desktopeditors".Context.sockets = ["x11"]; # No Wayland support
+  };
+}
+```
+
+Implementation details have been discussed in 
 
 # Known issues
 
