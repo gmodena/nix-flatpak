@@ -5,7 +5,7 @@ let
 in
 {
 
-  options.services.flatpak = (import ./options.nix { inherit lib pkgs; })
+  options.services.flatpak = (import ./options.nix { inherit config lib pkgs; })
   // {
     enable = with lib; mkOption {
       type = types.bool;

@@ -1,4 +1,4 @@
-{ lib, ... }:
+{ config, lib, ... }:
 with lib;
 let
   remoteOptions = _: {
@@ -165,13 +165,22 @@ in
     '';
   };
 
+  # TODO: trigger a lib.warn if this option is set
   uninstallUnmanagedPackages = mkOption {
     type = with types; bool;
     default = false;
     description = lib.mdDoc ''
-      If enabled, uninstall packages not managed by this module on activation.
-      I.e. if packages were installed via Flatpak directly instead of this module,
-      they would get uninstalled on the next activation.
-    '';
+      uninstallUnmanagedPackages is deprecated since nix-flatpak 0.4.0 and will be
+  removed in 1.0.0. Use uninstallUnamanged instead.'';
+  };
+
+  uninstallUnmanaged = mkOption {
+    type = with types; bool;
+    default = config.services.flatpak.uninstallUnmanagedPackages || false;
+    description = lib.mdDoc ''
+        If enabled, uninstall packages and delete remotes not managed by this module on activation.
+        I.e. if packages were installed via Flatpak directly instead of this module,
+        they would get uninstalled on the next activation. The same applies to remotes manually setup via `flatpak remote-add`
+      '';
   };
 }
