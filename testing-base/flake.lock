@@ -3,12 +3,12 @@
     "flatpaks": {
       "locked": {
         "lastModified": 0,
-        "narHash": "sha256-lVdzO395c6c0K4mHaqw84iSAy4P2/H7QS38RsKs0rFY=",
-        "path": "/nix/store/8mgi1kq0wcb3s9nhwnnfdwjnhj1nj4q3-source",
+        "narHash": "sha256-nwNvEEHwmg1yIcsr4UMgUNhbDhACjisetLn2ln1lZkc=",
+        "path": "/nix/store/ax9fayy482xr69g8lpy5zpsb91nfzay4-source",
         "type": "path"
       },
       "original": {
-        "path": "/nix/store/8mgi1kq0wcb3s9nhwnnfdwjnhj1nj4q3-source",
+        "path": "/nix/store/ax9fayy482xr69g8lpy5zpsb91nfzay4-source",
         "type": "path"
       }
     },

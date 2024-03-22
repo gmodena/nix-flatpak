@@ -1,18 +1,21 @@
 { config, lib, pkgs, ... }@args:
 let
-  cfg = config.services.flatpak;
+  cfg = lib.warnIf (! isNull config.services.flatpak.uninstallUnmanagedPackages)
+    "uninstallUnmanagedPackages is deprecated since nix-flatpak 0.4.0 and will be removed in 1.0.0. Use uninstallUnamanged instead."
+    config.services.flatpak;
   installation = "user";
 in
 {
 
-  options.services.flatpak = (import ./options.nix { inherit lib pkgs; })
-  // {
+  options.services.flatpak = (import ./options.nix { inherit config lib pkgs; })
+    // {
     enable = with lib; mkOption {
       type = types.bool;
       default = args.osConfig.services.flatpak.enable or false;
       description = mkDoc "Whether to enable nix-flatpak declarative flatpak management in home-manager.";
     };
   };
+
 
   config = lib.mkIf config.services.flatpak.enable {
     systemd.user.services."flatpak-managed-install" = {
@@ -53,5 +56,4 @@ in
 
     xdg.enable = true;
   };
-
 }

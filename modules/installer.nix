@@ -7,6 +7,18 @@ let
   # be handled. Right now it introduces a small issue of the state file derivation
   # not being garbage collected even when this module is removed. You can find
   # more details on this design drawback in PR#23
+  # State is represented by a JSON object with keys `packages`, `overrides` and `remotes`.
+  # Example `flatpak-state.json`:
+  # {
+  #   "packages": ["org.gnome.Epiphany", "org.gnome.Epiphany.Devel"],
+  #   "overrides": {
+  #     "org.gnome.Epiphany": {
+  #       "command": "env MOZ_ENABLE_WAYLAND=1 /run/current-system/sw/bin/epiphany",
+  #       "env": "MOZ_ENABLE_WAYLAND=1"
+  #     }
+  #   },
+  #   "remotes": ["flathub", "gnome-nightly"]
+  # }
   gcroots =
     if (installation == "system")
     then "/nix/var/nix/gcroots/"
@@ -14,19 +26,34 @@ let
   stateFile = pkgs.writeText "flatpak-state.json" (builtins.toJSON {
     packages = map (builtins.getAttr "appId") cfg.packages;
     overrides = cfg.overrides;
+    remotes = map (builtins.getAttr "name") cfg.remotes;
   });
+
   statePath = "${gcroots}/${stateFile.name}";
 
   updateApplications = cfg.update.onActivation || cfg.update.auto.enable;
 
-  handleUnmanagedPackagesCmd = installation: uninstallUnmanagedPackages:
-    lib.optionalString uninstallUnmanagedPackages ''
+  # This script is used to manage the lifecyle of all flatpaks (remotes, packages)
+  # installed on the system.
+  # handeUnmanagedStateCmd is used to handle the case where the user wants nix-flatpak to manage
+  # the state of the system, and uninstall any packages or remotes that are not declared in its config.
+  handleUnmanagedStateCmd = installation: uninstallUnmanagedState:
+    lib.optionalString uninstallUnmanagedState ''
       # Add all installed Flatpak packages to the old state, so only the managed ones (new state) will be kept
       INSTALLED_PACKAGES=$(${pkgs.flatpak}/bin/flatpak --${installation} list --app --columns=application)
       OLD_STATE=$(${pkgs.jq}/bin/jq -r -n \
         --argjson old "$OLD_STATE" \
         --arg installed_packages "$INSTALLED_PACKAGES" \
         '$old + { "packages" : $installed_packages | split("\n") }')
+
+      # Add all configured remoted to the old state, so that only managed ones will be kept across generations.
+      MANAGED_REMOTES=$(${pkgs.flatpak}/bin/flatpak --${installation} remotes --columns=name)
+
+      OLD_STATE=$(${pkgs.jq}/bin/jq -r -n \
+        --argjson old "$OLD_STATE" \
+        --arg managed_remotes "$MANAGED_REMOTES" \
+        '$old + { "remotes": $managed_remotes | split("\n") }')
+
     '';
 
   flatpakUninstallCmd = installation: {}: ''
@@ -85,20 +112,34 @@ let
     ''}
   '';
 
-  flatpakAddRemoteCmd = installation: { name, location, args ? null, ... }: ''
+  flatpakAddRemotesCmd = installation: { name, location, args ? null, ... }: ''
     ${pkgs.flatpak}/bin/flatpak remote-add --${installation} --if-not-exists ${if args == null then "" else args} ${name} ${location}
   '';
-  flatpakAddRemote = installation: remotes: map (flatpakAddRemoteCmd installation) remotes;
+  flatpakAddRemote = installation: remotes: map (flatpakAddRemotesCmd installation) remotes;
+
+  flatpakDeleteRemotesCmd = installation: {}: ''
+      # Delete all remotes that are present in the old state but not the new one
+      # $OLD_STATE and $NEW_STATE are globals, declared in the output of pkgs.writeShellScript.
+      ${pkgs.jq}/bin/jq -r -n \
+        --argjson old "$OLD_STATE" \
+        --argjson new "$NEW_STATE" \
+         '(($old.remotes // []) - ($new.remotes // []))[]' \
+        | while read -r REMOTE_NAME; do
+            ${pkgs.flatpak}/bin/flatpak remote-delete --${installation} $REMOTE_NAME
+        done
+  '';
+
+
   flatpakInstall = installation: update: packages: map (flatpakInstallCmd installation update) packages;
 
   mkFlatpakInstallCmd = installation: update: packages: builtins.foldl' (x: y: x + y) '''' (flatpakInstall installation update packages);
-  mkFlatpakAddRemoteCmd = installation: remotes: builtins.foldl' (x: y: x + y) '''' (flatpakAddRemote installation remotes);
+  mkFlatpakAddRemotesCmd = installation: remotes: builtins.foldl' (x: y: x + y) '''' (flatpakAddRemote installation remotes);
 in
 pkgs.writeShellScript "flatpak-managed-install" ''
   # This script is triggered at build time by a transient systemd unit.
   set -eu
 
-  # Setup state variables
+  # Setup state variables for packages and remotes
   NEW_STATE=$(${pkgs.coreutils}/bin/cat ${stateFile})
   if [[ -f ${statePath} ]]; then
     OLD_STATE=$(${pkgs.coreutils}/bin/cat ${statePath})
@@ -106,15 +147,19 @@ pkgs.writeShellScript "flatpak-managed-install" ''
     OLD_STATE={}
   fi
 
-  # Handle unmanaged packages
-  ${handleUnmanagedPackagesCmd installation cfg.uninstallUnmanagedPackages}
+  # Handle unmanaged packages and remotes.
+  ${handleUnmanagedStateCmd installation cfg.uninstallUnmanaged}
 
   # Configure remotes
-  ${mkFlatpakAddRemoteCmd installation cfg.remotes}
+  ${mkFlatpakAddRemotesCmd installation cfg.remotes}
 
   # Uninstall packages that have been removed from services.flatpak.packages
   # since the previous activation.
   ${flatpakUninstallCmd installation {}}
+
+  # Uninstall remotes that have been removed from services.flatpak.packages
+  # since the previous activation.
+  ${flatpakDeleteRemotesCmd installation {}}
 
   # Install packages
   ${mkFlatpakInstallCmd installation updateApplications cfg.packages}
