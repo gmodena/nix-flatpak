@@ -1,10 +1,12 @@
 { config, lib, pkgs, ... }:
 let
-  cfg = config.services.flatpak;
+  cfg = lib.warnIf (! isNull config.services.flatpak.uninstallUnmanagedPackages)
+    "uninstallUnmanagedPackages is deprecated since nix-flatpak 0.4.0 and will be removed in 1.0.0. Use uninstallUnamanged instead."
+    config.services.flatpak;
   installation = "system";
 in
 {
-  options.services.flatpak = import ./options.nix { inherit lib pkgs; };
+  options.services.flatpak = import ./options.nix { inherit config lib pkgs; };
 
   config = lib.mkIf config.services.flatpak.enable {
     systemd.services."flatpak-managed-install" = {
