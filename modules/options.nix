@@ -174,7 +174,8 @@ in
 
   uninstallUnmanaged = mkOption {
     type = with types; bool;
-    default = config.services.flatpak.uninstallUnmanagedPackages || false;
+    default = (if isNull config.services.flatpak.uninstallUnmanagedPackages then false else
+    config.services.flatpak.uninstallUnmanagedPackages) || false;
     description = lib.mdDoc ''
       If enabled, uninstall packages and delete remotes not managed by this module on activation.
       I.e. if packages were installed via Flatpak directly instead of this module,
