@@ -31,7 +31,7 @@ Releases are tagged with [semantic versioning](https://semver.org/). Versions be
 Users can track a version by passing its tag as `ref`
 ```nix
 ...
-nix-flatpak.url = "github:gmodena/nix-flatpak/?ref=v0.4.0";
+nix-flatpak.url = "github:gmodena/nix-flatpak/?ref=v0.4.1";
 ...
 ```
 
