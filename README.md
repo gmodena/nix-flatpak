@@ -110,7 +110,15 @@ By default `nix-flatpak` will only manage (install/uninstall/update) packages de
 Flatpak packages and repositories installed by the command line of app stores won't be affected.
 
 Set `services.flatpak.uninstallUnmanaged = true` to alter this behaviour, and have `nix-flatpak` manage the
-lifecycle of all flatpaks packages and repositories installed on the system.
+lifecycle of all flatpaks packages and repositories.
+
+Note that `services.flatpak.uninstallUnmanaged` will only affect a given `system` of `user` installation
+target. If `nix-flatpak` is installed as a HomeManager module all packages/remotes will be managed
+in a `user` installation. Packages/remotes installed system-wide won't be affected
+by `services.flatpak.uninstallUnmanaged`.
+
+Similarly, when `nix-flatpak` is installed as a NixOs module, only system-wide config will
+be affected.
 
 ### Updates
 
