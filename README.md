@@ -22,12 +22,16 @@ the number of applications to install, this could increase activation time signi
 
 ## Releases
 
-This project is released as a [flake](https://nixos.wiki/wiki/Flakes). 
+This project is released as a [flake](https://nixos.wiki/wiki/Flakes), and is published
+on [flakehub](https://flakehub.com/flake/gmodena/nix-flatpak).
+
+### Manual installation
+
 Releases are tagged with [semantic versioning](https://semver.org/). Versions below `1.0.0` are considered early, development, releases.
 Users can track a version by passing its tag as `ref`
 ```nix
 ...
-nix-flatpak.url = "github:gmodena/nix-flatpak/?ref=v0.1.0";
+nix-flatpak.url = "github:gmodena/nix-flatpak/?ref=v0.4.0";
 ...
 ```
 
