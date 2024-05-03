@@ -48,6 +48,7 @@ in
     home.activation = {
       flatpak-managed-install = lib.hm.dag.entryAfter [ "reloadSystemd" ] ''
         export PATH=${lib.makeBinPath (with pkgs; [ systemd ])}:$PATH
+        export DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/$UID/bus
 
         $DRY_RUN_CMD systemctl is-system-running -q && \
           systemctl --user start flatpak-managed-install.service || true
