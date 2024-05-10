@@ -18,6 +18,7 @@ in
       ];
       serviceConfig = {
         Type = "oneshot"; # TODO: should this be an async startup, to avoid blocking on network at boot ?
+        ExecStartPre = "${pkgs.coreutils}/bin/sleep 5"; 
         ExecStart = import ./installer.nix { inherit cfg pkgs lib installation; };
       };
     };
