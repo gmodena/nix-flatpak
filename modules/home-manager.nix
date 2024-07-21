@@ -1,7 +1,7 @@
 { config, lib, pkgs, ... }@args:
 let
   cfg = lib.warnIf (! isNull config.services.flatpak.uninstallUnmanagedPackages)
-    "uninstallUnmanagedPackages is deprecated since nix-flatpak 0.4.0 and will be removed in 1.0.0. Use uninstallUnamanged instead."
+    "uninstallUnmanagedPackages is deprecated since nix-flatpak 0.4.0 and will be removed in 1.0.0. Use uninstallUnmanaged instead."
     config.services.flatpak;
   installation = "user";
 in

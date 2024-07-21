@@ -169,7 +169,7 @@ in
     type = lib.types.nullOr (lib.types.bool);
     default = null;
     description = lib.mdDoc ''
-      uninstallUnmanagedPackages is deprecated. Use uninstallUnamanged instead.'';
+      uninstallUnmanagedPackages is deprecated. Use uninstallUnmanaged instead.'';
   };
 
   uninstallUnmanaged = mkOption {
