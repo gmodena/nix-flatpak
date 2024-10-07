@@ -1,6 +1,24 @@
 { cfg, pkgs, lib, installation ? "system", ... }:
 
 let
+  utils = import ./ref.nix {  inherit pkgs lib; };
+
+  flatpakrefCache = builtins.foldl' (acc: package:
+        acc // utils.flatpakrefToAttrSet package acc
+    ) {} (builtins.filter (package: utils.isFlatpakref package) cfg.packages);
+
+  getAppIdOrRef = flatpakrefUrl: installation:
+  let
+    appId = flatpakrefCache.${(utils.sanitizeUrl flatpakrefUrl)}.Name;
+  in
+    ''
+        $(if ${pkgs.flatpak}/bin/flatpak --${installation} list --app --columns=application | ${pkgs.gnugrep}/bin/grep -q ${appId}; then
+            echo "${appId}"
+        else
+            echo "--from ${flatpakrefUrl}"
+        fi)
+    '';
+
   # Put the state file in the `gcroots` folder of the respective installation,
   # which prevents it from being garbage collected. This could probably be
   # improved in the future if there are better conventions for how this should
@@ -23,10 +41,26 @@ let
     if (installation == "system")
     then "/nix/var/nix/gcroots/"
     else "\${XDG_STATE_HOME:-$HOME/.local/state}/home-manager/gcroots";
+
   stateFile = pkgs.writeText "flatpak-state.json" (builtins.toJSON {
-    packages = map (builtins.getAttr "appId") cfg.packages;
+    packages = ( map (package:
+        if utils.isFlatpakref package
+        then package // { appId = flatpakrefCache.${(utils.sanitizeUrl package.flatpakref)}.Name;
+                          origin = flatpakrefCache.${(utils.sanitizeUrl package.flatpakref)}.SuggestRemoteName;
+                        }
+        else package
+        ) cfg.packages);
     overrides = cfg.overrides;
-    remotes = map (builtins.getAttr "name") cfg.remotes;
+    # Iterate over remotes and handle remotes installed from flatpakref URLs
+    remotes =
+        # Existing remotes (not from flatpakref)
+        (map (builtins.getAttr "name") cfg.remotes) ++
+        # Add remotes extracted from flatpakref URLs in packages
+        (builtins.filter (remote: remote != null) (map (package:
+          if utils.isFlatpakref package
+          then flatpakrefCache.${(utils.sanitizeUrl package.flatpakref)}.SuggestRemoteName
+          else null
+        ) cfg.packages));
   });
 
   statePath = "${gcroots}/${stateFile.name}";
@@ -46,7 +80,7 @@ let
         --arg installed_packages "$INSTALLED_PACKAGES" \
         '$old + { "packages" : $installed_packages | split("\n") }')
 
-      # Add all configured remoted to the old state, so that only managed ones will be kept across generations.
+      # Add all configured remote to the old state, so that only managed ones will be kept across generations.
       MANAGED_REMOTES=$(${pkgs.flatpak}/bin/flatpak --${installation} remotes --columns=name)
 
       OLD_STATE=$(${pkgs.jq}/bin/jq -r -n \
@@ -72,6 +106,7 @@ let
     if (installation == "system")
     then "/var/lib/flatpak/overrides"
     else "\${XDG_DATA_HOME:-$HOME/.local/share}/flatpak/overrides";
+
   flatpakOverridesCmd = installation: {}: ''
     # Update overrides that are managed by this module (both old and new)
     ${pkgs.coreutils}/bin/mkdir -p ${overridesDir}
@@ -102,15 +137,29 @@ let
         done
   '';
 
-  flatpakInstallCmd = installation: update: { appId, origin ? "flathub", commit ? null, ... }: ''
-    ${pkgs.flatpak}/bin/flatpak --${installation} --noninteractive --no-auto-pin install \
-        ${if update && commit == null then ''--or-update'' else ''''} ${origin} ${appId}
+  flatpakCmdBuilder = installation: action: args:
+      "${pkgs.flatpak}/bin/flatpak --${installation} --noninteractive ${args} ${action} ";
 
-    ${if commit == null
-        then '' ''
-        else ''${pkgs.flatpak}/bin/flatpak --${installation} update --noninteractive  --commit="${commit}" ${appId}
-    ''}
-  '';
+  installCmdBuilder = installation: update: appId: flatpakref: origin:
+      flatpakCmdBuilder installation " install "
+        (if update then " --or-update " else " ") +
+        (if  utils.isFlatpakref { flatpakref=flatpakref; }
+        then getAppIdOrRef flatpakref installation # If the appId is a flatpakref URL, get the appId from the flatpakref file
+        else " ${origin} ${appId} ");
+
+  updateCmdBuilder = installation: commit: appId:
+      flatpakCmdBuilder installation "update"
+        "--no-auto-pin --commit=\"${commit}\" ${appId}";
+
+  flatpakInstallCmd = installation: update: { appId, origin ? "flathub", commit ? null, flatpakref ? null, ... }: let
+    installCmd = installCmdBuilder installation update appId flatpakref origin;
+
+    # pin the commit if it is provided
+    pinCommitOrUpdate = if commit != null
+        then updateCmdBuilder installation commit appId
+        else "";
+    in
+        installCmd + "\n" + pinCommitOrUpdate;
 
   flatpakAddRemotesCmd = installation: { name, location, args ? null, ... }: ''
     ${pkgs.flatpak}/bin/flatpak remote-add --${installation} --if-not-exists ${if args == null then "" else args} ${name} ${location}

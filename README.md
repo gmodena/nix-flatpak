@@ -107,6 +107,20 @@ You can pin a specific commit setting `commit=<hash>` attribute.
 
 Rebuild your system (or home-manager) for changes to take place.
 
+#### Flatpakref files
+[Flatpakref]() files can be installed by setting the `flatpakref` attribute to :
+```nix
+  services.flatpak.packages = [
+    { flatpakref = "<uri>"; sha256="<hash>"; }
+  ];
+```
+
+A `sha256` hash is required for  the flatpakref file. This can be generated with `nix-prefetch-url <uri>`.
+Omitting the `sha256` attribute will require an `impure` evaluation of the flake.
+
+When installing an application from a `flatpakref` it's remote will be added with the
+`SuggestRemoteName` attributed declared in the flatpakref file.
+
 ##### Unmanaged packages and remotes
 
 By default `nix-flatpak` will only manage (install/uninstall/update) packages declared in the
