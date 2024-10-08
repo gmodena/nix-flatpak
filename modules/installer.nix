@@ -62,13 +62,10 @@ let
       # Existing remotes (not from flatpakref)
       (map (builtins.getAttr "name") cfg.remotes) ++
       # Add remotes extracted from flatpakref URLs in packages
-      (builtins.filter (remote: remote != null) (map
+      map
         (package:
-          if utils.isFlatpakref package
-          then flatpakrefCache.${(utils.sanitizeUrl package.flatpakref)}.SuggestRemoteName
-          else null
-        )
-        cfg.packages));
+          flatpakrefCache.${(utils.sanitizeUrl package.flatpakref)}.SuggestRemoteName)
+        (builtins.filter (package: utils.isFlatpakref package) cfg.packages);
   });
 
   statePath = "${gcroots}/${stateFile.name}";
