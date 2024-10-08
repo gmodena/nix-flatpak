@@ -49,6 +49,8 @@
       #      xdg-desktop-portal-gtk
     ];
   };
-
+  
+  # install flatpak binary
+  services.flatpak.enable = true;
   system.stateVersion = "23.11";
 }
