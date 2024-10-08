@@ -16,25 +16,28 @@ let
   # We piggyback on builtins.fetchurl to fetch and cache flatpakref file. Pure nix evaluations
   # requrie a sha256 hash to be provided.
   # TODO: extract a generic ini-to-attrset function.
-  flatpakrefToAttrSet = {flatpakref, sha256, ...}: cache:
-    let updatedCache =
-     if builtins.hasAttr (sanitizeUrl flatpakref) cache then
-        cache
-     else
-        let
-            fetchurlArgs = if sha256 != null
-            then {url=flatpakref; sha256=sha256;}
-            else {url=flatpakref;};
-            iniContent = builtins.readFile ( builtins.fetchurl fetchurlArgs );
+  flatpakrefToAttrSet = { flatpakref, sha256, ... }: cache:
+    let
+      updatedCache =
+        if builtins.hasAttr (sanitizeUrl flatpakref) cache then
+          cache
+        else
+          let
+            fetchurlArgs =
+              if sha256 != null
+              then { url = flatpakref; sha256 = sha256; }
+              else { url = flatpakref; };
+            iniContent = builtins.readFile (builtins.fetchurl fetchurlArgs);
             lines = builtins.split "\r?\n" iniContent;
-            parsed = builtins.filter (line: line != null) (map (line: builtins.match "(.*)=(.*)" (builtins.toString line) ) lines);
+            parsed = builtins.filter (line: line != null) (map (line: builtins.match "(.*)=(.*)" (builtins.toString line)) lines);
 
             # Convert the list of key-value pairs into an attrset
             attrSet = builtins.listToAttrs (map (pair: { name = builtins.elemAt pair 0; value = builtins.elemAt pair 1; }) parsed);
-        in
+          in
           cache // { ${(sanitizeUrl flatpakref)} = attrSet; };
-     in updatedCache;
- in
- {
-    inherit isFlatpakref sanitizeUrl flatpakrefToAttrSet;
- }
+    in
+    updatedCache;
+in
+{
+  inherit isFlatpakref sanitizeUrl flatpakrefToAttrSet;
+}

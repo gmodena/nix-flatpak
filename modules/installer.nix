@@ -1,22 +1,25 @@
 { cfg, pkgs, lib, installation ? "system", ... }:
 
 let
-  utils = import ./ref.nix {  inherit pkgs lib; };
+  utils = import ./ref.nix { inherit pkgs lib; };
 
-  flatpakrefCache = builtins.foldl' (acc: package:
-        acc // utils.flatpakrefToAttrSet package acc
-    ) {} (builtins.filter (package: utils.isFlatpakref package) cfg.packages);
+  flatpakrefCache = builtins.foldl'
+    (acc: package:
+      acc // utils.flatpakrefToAttrSet package acc
+    )
+    { }
+    (builtins.filter (package: utils.isFlatpakref package) cfg.packages);
 
   getAppIdOrRef = flatpakrefUrl: installation:
-  let
-    appId = flatpakrefCache.${(utils.sanitizeUrl flatpakrefUrl)}.Name;
-  in
+    let
+      appId = flatpakrefCache.${(utils.sanitizeUrl flatpakrefUrl)}.Name;
+    in
     ''
-        $(if ${pkgs.flatpak}/bin/flatpak --${installation} list --app --columns=application | ${pkgs.gnugrep}/bin/grep -q ${appId}; then
-            echo "${appId}"
-        else
-            echo "--from ${flatpakrefUrl}"
-        fi)
+      $(if ${pkgs.flatpak}/bin/flatpak --${installation} list --app --columns=application | ${pkgs.gnugrep}/bin/grep -q ${appId}; then
+          echo "${appId}"
+      else
+          echo "--from ${flatpakrefUrl}"
+      fi)
     '';
 
   # Put the state file in the `gcroots` folder of the respective installation,
@@ -43,24 +46,29 @@ let
     else "\${XDG_STATE_HOME:-$HOME/.local/state}/home-manager/gcroots";
 
   stateFile = pkgs.writeText "flatpak-state.json" (builtins.toJSON {
-    packages = ( map (package:
+    packages = (map
+      (package:
         if utils.isFlatpakref package
-        then package // { appId = flatpakrefCache.${(utils.sanitizeUrl package.flatpakref)}.Name;
-                          origin = flatpakrefCache.${(utils.sanitizeUrl package.flatpakref)}.SuggestRemoteName;
-                        }
+        then package // {
+          appId = flatpakrefCache.${(utils.sanitizeUrl package.flatpakref)}.Name;
+          origin = flatpakrefCache.${(utils.sanitizeUrl package.flatpakref)}.SuggestRemoteName;
+        }
         else package
-        ) cfg.packages);
+      )
+      cfg.packages);
     overrides = cfg.overrides;
     # Iterate over remotes and handle remotes installed from flatpakref URLs
     remotes =
-        # Existing remotes (not from flatpakref)
-        (map (builtins.getAttr "name") cfg.remotes) ++
-        # Add remotes extracted from flatpakref URLs in packages
-        (builtins.filter (remote: remote != null) (map (package:
+      # Existing remotes (not from flatpakref)
+      (map (builtins.getAttr "name") cfg.remotes) ++
+      # Add remotes extracted from flatpakref URLs in packages
+      (builtins.filter (remote: remote != null) (map
+        (package:
           if utils.isFlatpakref package
           then flatpakrefCache.${(utils.sanitizeUrl package.flatpakref)}.SuggestRemoteName
           else null
-        ) cfg.packages));
+        )
+        cfg.packages));
   });
 
   statePath = "${gcroots}/${stateFile.name}";
@@ -138,28 +146,30 @@ let
   '';
 
   flatpakCmdBuilder = installation: action: args:
-      "${pkgs.flatpak}/bin/flatpak --${installation} --noninteractive ${args} ${action} ";
+    "${pkgs.flatpak}/bin/flatpak --${installation} --noninteractive ${args} ${action} ";
 
   installCmdBuilder = installation: update: appId: flatpakref: origin:
-      flatpakCmdBuilder installation " install "
-        (if update then " --or-update " else " ") +
-        (if  utils.isFlatpakref { flatpakref=flatpakref; }
-        then getAppIdOrRef flatpakref installation # If the appId is a flatpakref URL, get the appId from the flatpakref file
-        else " ${origin} ${appId} ");
+    flatpakCmdBuilder installation " install "
+      (if update then " --or-update " else " ") +
+    (if utils.isFlatpakref { flatpakref = flatpakref; }
+    then getAppIdOrRef flatpakref installation # If the appId is a flatpakref URL, get the appId from the flatpakref file
+    else " ${origin} ${appId} ");
 
   updateCmdBuilder = installation: commit: appId:
-      flatpakCmdBuilder installation "update"
-        "--no-auto-pin --commit=\"${commit}\" ${appId}";
+    flatpakCmdBuilder installation "update"
+      "--no-auto-pin --commit=\"${commit}\" ${appId}";
 
-  flatpakInstallCmd = installation: update: { appId, origin ? "flathub", commit ? null, flatpakref ? null, ... }: let
-    installCmd = installCmdBuilder installation update appId flatpakref origin;
+  flatpakInstallCmd = installation: update: { appId, origin ? "flathub", commit ? null, flatpakref ? null, ... }:
+    let
+      installCmd = installCmdBuilder installation update appId flatpakref origin;
 
-    # pin the commit if it is provided
-    pinCommitOrUpdate = if commit != null
+      # pin the commit if it is provided
+      pinCommitOrUpdate =
+        if commit != null
         then updateCmdBuilder installation commit appId
         else "";
     in
-        installCmd + "\n" + pinCommitOrUpdate;
+    installCmd + "\n" + pinCommitOrUpdate;
 
   flatpakAddRemotesCmd = installation: { name, location, args ? null, ... }: ''
     ${pkgs.flatpak}/bin/flatpak remote-add --${installation} --if-not-exists ${if args == null then "" else args} ${name} ${location}
@@ -167,15 +177,15 @@ let
   flatpakAddRemote = installation: remotes: map (flatpakAddRemotesCmd installation) remotes;
 
   flatpakDeleteRemotesCmd = installation: {}: ''
-      # Delete all remotes that are present in the old state but not the new one
-      # $OLD_STATE and $NEW_STATE are globals, declared in the output of pkgs.writeShellScript.
-      ${pkgs.jq}/bin/jq -r -n \
-        --argjson old "$OLD_STATE" \
-        --argjson new "$NEW_STATE" \
-         '(($old.remotes // []) - ($new.remotes // []))[]' \
-        | while read -r REMOTE_NAME; do
-            ${pkgs.flatpak}/bin/flatpak remote-delete --${installation} $REMOTE_NAME
-        done
+    # Delete all remotes that are present in the old state but not the new one
+    # $OLD_STATE and $NEW_STATE are globals, declared in the output of pkgs.writeShellScript.
+    ${pkgs.jq}/bin/jq -r -n \
+      --argjson old "$OLD_STATE" \
+      --argjson new "$NEW_STATE" \
+       '(($old.remotes // []) - ($new.remotes // []))[]' \
+      | while read -r REMOTE_NAME; do
+          ${pkgs.flatpak}/bin/flatpak remote-delete --${installation} $REMOTE_NAME
+      done
   '';
 
 
