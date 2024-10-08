@@ -108,7 +108,7 @@ You can pin a specific commit setting `commit=<hash>` attribute.
 Rebuild your system (or home-manager) for changes to take place.
 
 #### Flatpakref files
-[Flatpakref]() files can be installed by setting the `flatpakref` attribute to :
+[Flatpakref](https://docs.flatpak.org/en/latest/repositories.html#flatpakref-files) files can be installed by setting the `flatpakref` attribute to :
 ```nix
   services.flatpak.packages = [
     { flatpakref = "<uri>"; sha256="<hash>"; }
