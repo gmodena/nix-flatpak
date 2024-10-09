@@ -40,6 +40,17 @@ let
         default = "flathub";
         description = lib.mdDoc "App repository origin (default: flathub).";
       };
+
+      flatpakref = mkOption {
+        type = types.nullOr types.str;
+        description = lib.mdDoc "The flakeref URI of the app to install. ";
+        default = null;
+      };
+      sha256 = mkOption {
+        type = types.nullOr types.str;
+        description = lib.mdDoc "The sha256 hash of the URI to install. ";
+        default = null;
+      };
     };
   };
 
