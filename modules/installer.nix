@@ -10,6 +10,29 @@ let
     { }
     (builtins.filter (package: utils.isFlatpakref package) cfg.packages);
 
+  # Extract the remote name from a package that declares a flatpakref:
+  # 1. if the package sets an origin, use that as label for the remote url.
+  # 2. if the package does not set an origin, use the remote name suggested by the flatpakref.
+  # 3. if the package does not set an origin and the flatpakref does not suggest a remote name, sanitize application Name.
+  getRemoteNameFromFlatpakref = origin: cache:
+    let
+      remoteName = origin;
+    in
+    if remoteName == null
+    then
+      let
+        flatpakrefdName =
+          if builtins.hasAttr "SuggestRemoteName" cache
+          then cache.SuggestRemoteName
+          else "${lib.toLower cache.Name}-origin";
+      in
+      flatpakrefdName
+    else
+      remoteName;
+
+  # Get the appId from the flatpakref file or the flatpakref URL to pass to flatpak commands.
+  # As of 2024-10 Flatpak will fail to reinstall from flatpakref URL (https://github.com/flatpak/flatpak/issues/5460).
+  # This function will return the appId if the package is already installed, otherwise it will return the flatpakref URL.
   getAppIdOrRef = flatpakrefUrl: installation:
     let
       appId = flatpakrefCache.${(utils.sanitizeUrl flatpakrefUrl)}.Name;
@@ -51,7 +74,7 @@ let
         if utils.isFlatpakref package
         then package // {
           appId = flatpakrefCache.${(utils.sanitizeUrl package.flatpakref)}.Name;
-          origin = flatpakrefCache.${(utils.sanitizeUrl package.flatpakref)}.SuggestRemoteName;
+          origin = getRemoteNameFromFlatpakref null flatpakrefCache.${(utils.sanitizeUrl package.flatpakref)};
         }
         else package
       )
@@ -64,7 +87,7 @@ let
       # Add remotes extracted from flatpakref URLs in packages
       map
         (package:
-          flatpakrefCache.${(utils.sanitizeUrl package.flatpakref)}.SuggestRemoteName)
+          getRemoteNameFromFlatpakref package.origin flatpakrefCache.${(utils.sanitizeUrl package.flatpakref)})
         (builtins.filter (package: utils.isFlatpakref package) cfg.packages);
   });
 
@@ -121,7 +144,7 @@ let
       '$new.overrides + $old.overrides | keys[]' \
       | while read -r APP_ID; do
           OVERRIDES_PATH=${overridesDir}/$APP_ID
-          
+
           # Transform the INI-like Flatpak overrides file into a workable JSON
           if [[ -f $OVERRIDES_PATH ]]; then
             ACTIVE=$(${pkgs.coreutils}/bin/cat $OVERRIDES_PATH \
