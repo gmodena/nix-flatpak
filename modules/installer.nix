@@ -72,11 +72,8 @@ let
     packages = (map
       (package:
         if utils.isFlatpakref package
-        then package // {
-          appId = flatpakrefCache.${(utils.sanitizeUrl package.flatpakref)}.Name;
-          origin = getRemoteNameFromFlatpakref null flatpakrefCache.${(utils.sanitizeUrl package.flatpakref)};
-        }
-        else package
+        then flatpakrefCache.${(utils.sanitizeUrl package.flatpakref)}.Name # application id from flatpakref
+        else package.appId
       )
       cfg.packages);
     overrides = cfg.overrides;
