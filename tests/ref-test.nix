@@ -41,7 +41,7 @@ runTests {
     expected = false;
   };
 
-  testGetRemoteNameFromFlatpakrefWithOrigin = {
+  testGetRemoteNameWithOrigin = {
     expr = ref.getRemoteNameFromFlatpakref "example" { SuggestRemoteName = "local"; };
     expected = "example";
   };
