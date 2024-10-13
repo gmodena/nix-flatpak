@@ -1,7 +1,7 @@
 { cfg, pkgs, lib, installation ? "system", ... }:
 
 let
-  utils = import ./ref.nix { inherit pkgs lib; };
+  utils = import ./ref.nix { inherit lib; };
 
   flatpakrefCache = builtins.foldl'
     (acc: package:
@@ -9,26 +9,6 @@ let
     )
     { }
     (builtins.filter (package: utils.isFlatpakref package) cfg.packages);
-
-  # Extract the remote name from a package that declares a flatpakref:
-  # 1. if the package sets an origin, use that as label for the remote url.
-  # 2. if the package does not set an origin, use the remote name suggested by the flatpakref.
-  # 3. if the package does not set an origin and the flatpakref does not suggest a remote name, sanitize application Name.
-  getRemoteNameFromFlatpakref = origin: cache:
-    let
-      remoteName = origin;
-    in
-    if remoteName == null
-    then
-      let
-        flatpakrefdName =
-          if builtins.hasAttr "SuggestRemoteName" cache
-          then cache.SuggestRemoteName
-          else "${lib.toLower cache.Name}-origin";
-      in
-      flatpakrefdName
-    else
-      remoteName;
 
   # Get the appId from the flatpakref file or the flatpakref URL to pass to flatpak commands.
   # As of 2024-10 Flatpak will fail to reinstall from flatpakref URL (https://github.com/flatpak/flatpak/issues/5460).
@@ -84,7 +64,7 @@ let
       # Add remotes extracted from flatpakref URLs in packages
       map
         (package:
-          getRemoteNameFromFlatpakref package.origin flatpakrefCache.${(utils.sanitizeUrl package.flatpakref)})
+          utils.getRemoteNameFromFlatpakref package.origin flatpakrefCache.${(utils.sanitizeUrl package.flatpakref)})
         (builtins.filter (package: utils.isFlatpakref package) cfg.packages);
   });
 
