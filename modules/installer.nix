@@ -173,15 +173,16 @@ let
   '';
   flatpakAddRemote = installation: remotes: map (flatpakAddRemotesCmd installation) remotes;
 
-  flatpakDeleteRemotesCmd = installation: {}: ''
+  flatpakDeleteRemotesCmd = installation: uninstallUnmanagedState: {}: ''
     # Delete all remotes that are present in the old state but not the new one
     # $OLD_STATE and $NEW_STATE are globals, declared in the output of pkgs.writeShellScript.
+    # If uninstallUnmanagedState is true, then the remotes will be deleted forcefully.
     ${pkgs.jq}/bin/jq -r -n \
       --argjson old "$OLD_STATE" \
       --argjson new "$NEW_STATE" \
        '(($old.remotes // []) - ($new.remotes // []))[]' \
       | while read -r REMOTE_NAME; do
-          ${pkgs.flatpak}/bin/flatpak remote-delete --${installation} $REMOTE_NAME
+          ${pkgs.flatpak}/bin/flatpak remote-delete ${if uninstallUnmanagedState then " --force " else " " } --${installation} $REMOTE_NAME
       done
   '';
 
@@ -215,7 +216,7 @@ pkgs.writeShellScript "flatpak-managed-install" ''
 
   # Uninstall remotes that have been removed from services.flatpak.packages
   # since the previous activation.
-  ${flatpakDeleteRemotesCmd installation {}}
+  ${flatpakDeleteRemotesCmd installation uninstallUnmanagedState {}}
 
   # Install packages
   ${mkFlatpakInstallCmd installation updateApplications cfg.packages}
