@@ -1,0 +1,8 @@
+[Flatpak Ref]
+Title=gedit
+Name=org.gnome.gedit
+Branch=stable
+Url=http://sdk.gnome.org/repo-apps/
+IsRuntime=false
+GPGKey=REDACTED
+DeployCollectionID=org.gnome.Apps
