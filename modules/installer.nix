@@ -183,6 +183,7 @@ let
        '(($old.remotes // []) - ($new.remotes // []))[]' \
       | while read -r REMOTE_NAME; do
           ${pkgs.flatpak}/bin/flatpak remote-delete ${if uninstallUnmanaged then " --force " else " " } --${installation} $REMOTE_NAME
+
       done
   '';
 
