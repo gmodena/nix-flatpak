@@ -2,6 +2,7 @@
 
 let
   utils = import ./ref.nix { inherit lib; };
+  remotes = import ./remotes.nix { inherit pkgs; };
 
   flatpakrefCache = builtins.foldl'
     (acc: package:
@@ -168,30 +169,12 @@ let
     in
     installCmd + "\n" + pinCommitOrUpdate;
 
-  flatpakAddRemotesCmd = installation: { name, location, args ? null, ... }: ''
-    ${pkgs.flatpak}/bin/flatpak remote-add --${installation} --if-not-exists ${if args == null then "" else args} ${name} ${location}
-  '';
-  flatpakAddRemote = installation: remotes: map (flatpakAddRemotesCmd installation) remotes;
-
-  flatpakDeleteRemotesCmd = installation: uninstallUnmanaged: {}: ''
-    # Delete all remotes that are present in the old state but not the new one
-    # $OLD_STATE and $NEW_STATE are globals, declared in the output of pkgs.writeShellScript.
-    # If uninstallUnmanagedState is true, then the remotes will be deleted forcefully.
-    ${pkgs.jq}/bin/jq -r -n \
-      --argjson old "$OLD_STATE" \
-      --argjson new "$NEW_STATE" \
-       '(($old.remotes // []) - ($new.remotes // []))[]' \
-      | while read -r REMOTE_NAME; do
-          ${pkgs.flatpak}/bin/flatpak remote-delete ${if uninstallUnmanaged then " --force " else " " } --${installation} $REMOTE_NAME
-
-      done
-  '';
-
-
   flatpakInstall = installation: update: packages: map (flatpakInstallCmd installation update) packages;
 
   mkFlatpakInstallCmd = installation: update: packages: builtins.foldl' (x: y: x + y) '''' (flatpakInstall installation update packages);
-  mkFlatpakAddRemotesCmd = installation: remotes: builtins.foldl' (x: y: x + y) '''' (flatpakAddRemote installation remotes);
+
+  flatpakDeleteRemotesCmd = remotes.flatpakDeleteRemotesCmd;
+  mkFlatpakAddRemotesCmd = remotes.mkFlatpakAddRemotesCmd;
 in
 pkgs.writeShellScript "flatpak-managed-install" ''
   # This script is triggered at build time by a transient systemd unit.

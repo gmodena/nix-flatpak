@@ -13,6 +13,11 @@ let
         description = lib.mdDoc "The remote location. Must be a valid URL of a flatpak repo.";
         default = "https://dl.flathub.org/repo/flathub.flatpakrepo";
       };
+      gpg-import = mkOption {
+        type = types.nullOr types.str;
+        description = "Import GPG key from FILE";
+        default = null;
+      };
       args = mkOption {
         type = types.nullOr types.str;
         description = "Extra arguments to pass to flatpak remote-add.";
