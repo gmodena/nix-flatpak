@@ -24,10 +24,5 @@ jobs:
     - run: nix flake check
     - name: Run Nix tests
       run: |
-        cd tests/
-        result=$(nix eval --impure --expr 'import ./ref-test.nix {}')
-        if [ "$result" != "[ ]" ]; then
-          echo "Test failed: Expected [], but got $result"
-          exit 1
-        fi
+        ./test.sh
       shell: bash
