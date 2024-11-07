@@ -46,22 +46,22 @@ runTests {
     expected = "example";
   };
 
-  testGetRemoteNameWithSuggestedName = {
+  testGetRemoteNameWithSuggestRemoteName = {
     expr = ref.getRemoteNameFromFlatpakref null { SuggestRemoteName = "local"; };
     expected = "local";
   };
 
-  testGetRemoteNameWithNoSuggestedName = {
+  testGetRemoteNameWithoutSuggestRemoteName = {
     expr = ref.getRemoteNameFromFlatpakref null { Name = "Example"; };
     expected = "example-origin";
   };
 
-  testGetRemoteNameWithNoSuggestedNameAndNameEndingWithDot = {
+  testGetRemoteNameWithoutSuggestRemoteNameAndNameEndingWithDot = {
     expr = ref.getRemoteNameFromFlatpakref null { Name = "Example."; };
     expected = "example-origin";
   };
 
-  testGetRemoteNameWithNoSuggestedNameAndNameStartingWithDot = {
+  testGetRemoteNameWithoutSuggestRemoteNameAndNameStartingWithDot = {
     expr = ref.getRemoteNameFromFlatpakref null { Name = ".Example"; };
     expected = "example-origin";
   };
