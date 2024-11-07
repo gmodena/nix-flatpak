@@ -119,9 +119,8 @@ A `sha256` hash is required for  the flatpakref file. This can be generated with
 Omitting the `sha256` attribute will require an `impure` evaluation of the flake.
 
 When installing an application from a `flatpakref`, the application remote will be determined as follows:
-1. If the packageOptions contains an origin, use that as the label for the remote URL.
-2. If the package does not specify an origin, use the remote name suggested by the flatpakref (SuggestRemoteName).
-3. If neither the package sets an origin nor the flatpakref suggests a remote name, sanitize the application Name.
+1. If the package does not specify an origin, use the remote name suggested by the flatpakref in `SuggestRemoteName`.
+2. If the flatpakref does not suggest a remote name, sanitize the flatpakref `Name` key with the same algo flatpak implements in [create_origin_remote_config()](https://github.com/flatpak/flatpak/blob/b730771bd793b34fb63fcbf292beed35476e5b92/common/flatpak-dir.c#L14423).
 
 ##### Unmanaged packages and remotes
 

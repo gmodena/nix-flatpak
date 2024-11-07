@@ -11,10 +11,27 @@ let
   # sanitize a URL to be used as a key in an attrset.
   sanitizeUrl = url: builtins.replaceStrings [ "https://" "/" "." ":" ] [ "https_" "_" "_" "_" ] url;
 
+  # Create an origin name using the same algorithm as create_origin_remote_config()
+  # from commons/flatpak-dir.c:
+  #    - Extract the Name key from the ref file.
+  #    - Split on '.' and get the last occurrence (prefix).
+  #    - Lowercase the prefix.
+  #    - Append the "-origin" suffix to the prefix.
+  # If we fail to parse Name, then the key is invalid, and we fail hard.
+  # See https://github.com/flatpak/flatpak/blob/b730771bd793b34fb63fcbf292beed35476e5b92/common/flatpak-dir.c#L14423
+  createOriginRemoteConfig = name:
+    let
+      parts = builtins.filter (part: part != "") (lib.strings.splitString "." name);
+      prefix = lib.strings.toLower (builtins.elemAt parts (builtins.length parts - 1));
+      origin = ''${prefix}-origin'';
+    in
+    origin;
+
   # Extract the remote name from a package that declares a flatpakref:
   # 1. if the package sets an origin, use that as label for the remote url.
   # 2. if the package does not set an origin, use the remote name suggested by the flatpakref.
-  # 3. if the package does not set an origin and the flatpakref does not suggest a remote name, sanitize application Name.
+  # 3. if the package does not set an origin and the flatpakref does not suggest a remote name,
+  #    sanitize Name.
   getRemoteNameFromFlatpakref = origin: cache:
     let
       remoteName = origin;
@@ -25,7 +42,7 @@ let
         flatpakrefdName =
           if builtins.hasAttr "SuggestRemoteName" cache
           then cache.SuggestRemoteName
-          else "${lib.toLower cache.Name}-origin";
+          else createOriginRemoteConfig cache.Name; # Name is a mandatory field. If missing, fail hard.
       in
       flatpakrefdName
     else

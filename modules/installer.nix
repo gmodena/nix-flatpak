@@ -61,12 +61,15 @@ let
     # Iterate over remotes and handle remotes installed from flatpakref URLs
     remotes =
       # Existing remotes (not from flatpakref)
-      (map (builtins.getAttr "name") cfg.remotes) ++
-      # Add remotes extracted from flatpakref URLs in packages
-      map
-        (package:
-          utils.getRemoteNameFromFlatpakref package.origin flatpakrefCache.${(utils.sanitizeUrl package.flatpakref)})
-        (builtins.filter (package: utils.isFlatpakref package) cfg.packages);
+      (map (builtins.getAttr "name") cfg.remotes)
+      ++
+      # Add remotes extracted from flatpakref URLs in packages.
+      # flatpakref remote names will override any origin set in the package.
+      (builtins.filter (remote: !builtins.isNull remote)
+        (map
+          (package:
+            utils.getRemoteNameFromFlatpakref null flatpakrefCache.${(utils.sanitizeUrl package.flatpakref)})
+          (builtins.filter (package: utils.isFlatpakref package) cfg.packages)));
   });
 
   statePath = "${gcroots}/${stateFile.name}";
