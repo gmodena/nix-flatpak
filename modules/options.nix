@@ -5,12 +5,12 @@ let
     options = {
       name = mkOption {
         type = types.str;
-        description = lib.mdDoc "The remote name. This name is what will be used when installing flatpak(s) from this repo.";
+        description = "The remote name. This name is what will be used when installing flatpak(s) from this repo.";
         default = "flathub";
       };
       location = mkOption {
         type = types.str;
-        description = lib.mdDoc "The remote location. Must be a valid URL of a flatpak repo.";
+        description = "The remote location. Must be a valid URL of a flatpak repo.";
         default = "https://dl.flathub.org/repo/flathub.flatpakrepo";
       };
       gpg-import = mkOption {
@@ -31,29 +31,29 @@ let
     options = {
       appId = mkOption {
         type = types.str;
-        description = lib.mdDoc "The fully qualified id of the app to install.";
+        description = "The fully qualified id of the app to install.";
       };
 
       commit = mkOption {
         type = types.nullOr types.str;
-        description = lib.mdDoc "Hash id of the app commit to install.";
+        description = "Hash id of the app commit to install.";
         default = null;
       };
 
       origin = mkOption {
         type = types.str;
         default = "flathub";
-        description = lib.mdDoc "App repository origin (default: flathub).";
+        description = "App repository origin (default: flathub).";
       };
 
       flatpakref = mkOption {
         type = types.nullOr types.str;
-        description = lib.mdDoc "The flakeref URI of the app to install. ";
+        description = "The flakeref URI of the app to install. ";
         default = null;
       };
       sha256 = mkOption {
         type = types.nullOr types.str;
-        description = lib.mdDoc "The sha256 hash of the URI to install. ";
+        description = "The sha256 hash of the URI to install. ";
         default = null;
       };
     };
@@ -64,7 +64,7 @@ let
       onActivation = mkOption {
         type = types.bool;
         default = false;
-        description = lib.mdDoc ''
+        description = ''
           Whether to enable flatpak to upgrade applications during
           {command}`nixos` system activation. The default is `false`
           so that repeated invocations of {command}`nixos-rebuild switch` are idempotent.
@@ -78,7 +78,7 @@ let
             enable = mkOption {
               type = types.bool;
               default = false;
-              description = lib.mdDoc ''
+              description = ''
                 Whether to enable flatpak to upgrade applications during
                 {command}`nixos` system activation, and scheudle periodic updates
                 afterwards.
@@ -91,7 +91,7 @@ let
             onCalendar = mkOption {
               type = types.str;
               default = "weekly";
-              description = lib.mdDoc ''
+              description = ''
                 Frequency of periodic updates.
                 See https://wiki.archlinux.org/title/systemd/Timers for details.
               '';
@@ -99,7 +99,7 @@ let
           };
         });
         default = { enable = false; };
-        description = lib.mdDoc ''
+        description = ''
           Value(s) in this Nix set are used to configure the behavior of the auto updater.
         '';
       };
@@ -112,7 +112,7 @@ in
   packages = mkOption {
     type = with types; listOf (coercedTo str (appId: { inherit appId; }) (submodule packageOptions));
     default = [ ];
-    description = lib.mdDoc ''
+    description = ''
       Declares a list of applications to install.
     '';
     example = literalExpression ''
@@ -129,7 +129,7 @@ in
   remotes = mkOption {
     type = with types; listOf (coercedTo str (name: { inherit name location; }) (submodule remoteOptions));
     default = [{ name = "flathub"; location = "https://dl.flathub.org/repo/flathub.flatpakrepo"; }];
-    description = lib.mdDoc ''
+    description = ''
       Declare a list of flatpak repositories.
     '';
     example = literalExpression ''
@@ -141,7 +141,7 @@ in
   overrides = mkOption {
     type = with types; attrsOf (attrsOf (attrsOf (either str (listOf str))));
     default = { };
-    description = lib.mdDoc ''
+    description = ''
       Applies the provided attribute set into a Flatpak overrides file with the
       same structure, keeping externally applied changes.
     '';
@@ -158,7 +158,7 @@ in
   update = mkOption {
     type = with types; submodule updateOptions;
     default = { onActivation = false; auto = { enable = false; onCalendar = "weekly"; }; };
-    description = lib.mdDoc ''
+    description = ''
       Whether to enable flatpak to upgrade applications during
       {command}`nixos` system activation. The default is `false`
       so that repeated invocations of {command}`nixos-rebuild switch` are idempotent.
@@ -184,7 +184,7 @@ in
   uninstallUnmanagedPackages = mkOption {
     type = lib.types.nullOr (lib.types.bool);
     default = null;
-    description = lib.mdDoc ''
+    description = ''
       uninstallUnmanagedPackages is deprecated. Use uninstallUnmanaged instead.'';
   };
 
@@ -192,7 +192,7 @@ in
     type = with types; bool;
     default = (if isNull config.services.flatpak.uninstallUnmanagedPackages then false else
     config.services.flatpak.uninstallUnmanagedPackages) || false;
-    description = lib.mdDoc ''
+    description = ''
       If enabled, uninstall packages and delete remotes not managed by this module on activation.
       I.e. if packages were installed via Flatpak directly instead of this module,
       they would get uninstalled on the next activation. The same applies to remotes manually setup via `flatpak remote-add`
