@@ -215,7 +215,7 @@ Package overrides can be declared via `services.flatpak.overrides`. Following is
 
 A couple of things to be aware of when working with `nix-flatpak`.
 
-## Infinte recusion in home-manager imports
+## Infinite recursion in home-manager imports
 
 Users have reported an infinite recursion stacktrace when importing an home-manager module outside of where home-manager
 itself was imported.
