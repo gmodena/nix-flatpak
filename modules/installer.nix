@@ -11,16 +11,17 @@ let
     { }
     (builtins.filter (package: utils.isFlatpakref package) cfg.packages);
 
-  # Get the appId from the flatpakref file or the flatpakref URL to pass to flatpak commands.
+  # Get the appId and origin from a flatpakref file or URL to pass to flatpak commands.
   # As of 2024-10 Flatpak will fail to reinstall from flatpakref URL (https://github.com/flatpak/flatpak/issues/5460).
   # This function will return the appId if the package is already installed, otherwise it will return the flatpakref URL.
-  getAppIdOrRef = flatpakrefUrl: installation:
+  installOrUpdateFromFlatpakref = flatpakrefUrl: installation:
     let
       appId = flatpakrefCache.${(utils.sanitizeUrl flatpakrefUrl)}.Name;
+      origin = utils.getRemoteNameFromFlatpakref null flatpakrefCache.${(utils.sanitizeUrl flatpakrefUrl)};
     in
     ''
       $(if ${pkgs.flatpak}/bin/flatpak --${installation} list --app --columns=application | ${pkgs.gnugrep}/bin/grep -q ${appId}; then
-          echo "${appId}"
+          echo "${origin} ${appId}"
       else
           echo "--from ${flatpakrefUrl}"
       fi)
@@ -153,7 +154,7 @@ let
     flatpakCmdBuilder installation " install "
       (if update then " --or-update " else " ") +
     (if utils.isFlatpakref { flatpakref = flatpakref; }
-    then getAppIdOrRef flatpakref installation # If the appId is a flatpakref URL, get the appId from the flatpakref file
+    then installOrUpdateFromFlatpakref flatpakref installation # If the appId is a flatpakref URL, extract the appId and origin from the flatpakref.
     else " ${origin} ${appId} ");
 
   updateCmdBuilder = installation: commit: appId:

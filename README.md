@@ -13,7 +13,7 @@ talk at NixCon 2023.
 `nix-flatpak` follows a [convergent mode](https://flyingcircus.io/blog/thoughts-on-systems-management-methods/) approach to package management (described in [this thread](https://discourse.nixos.org/t/feature-discussion-declarative-flatpak-configuration/26767/2)):
 the target system state description is not exhaustive, and there's room for divergence across builds
 and rollbacks.
-For a number of desktop application I want to be able to track the latest version, or allow them to auto update.
+For a number of desktop applications I want to be able to track the latest version, or allow them to auto update.
 For such applications, a convergent approach is a reasonable tradeoff wrt system reproducibility. YMMV.
 
 Flatpak applications are installed by systemd oneshot service triggered at system activation. Depending on
@@ -30,7 +30,7 @@ Releases are tagged with [semantic versioning](https://semver.org/). Versions be
 Users can track a version by passing its tag as `ref`
 ```nix
 ...
-nix-flatpak.url = "github:gmodena/nix-flatpak/?ref=v0.5.0";
+nix-flatpak.url = "github:gmodena/nix-flatpak/?ref=v0.5.1";
 ...
 ```
 
@@ -215,7 +215,7 @@ Package overrides can be declared via `services.flatpak.overrides`. Following is
 
 A couple of things to be aware of when working with `nix-flatpak`.
 
-## Infinte recusion in home-manager imports
+## Infinite recursion in home-manager imports
 
 Users have reported an infinite recursion stacktrace when importing an home-manager module outside of where home-manager
 itself was imported.
