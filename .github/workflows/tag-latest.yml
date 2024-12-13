@@ -10,6 +10,29 @@ on:
         type: "string"
         required: true
 jobs:
-  tag-latest:
-    - name: Run latest-tag
-      uses: EndBug/latest-tag@latest
+  update-latest-tag:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout the repository
+      uses: actions/checkout@v3
+
+    - name: Get the latest version tag
+      id: get-latest-tag
+      run: |
+        latest_tag=$(git tag -l | grep -E "v[0-9]+\.[0-9]+\.[0-9]+" | sort | head -n 1)
+        echo "Latest tag: $latest_tag"
+        echo "latest_tag=$latest_tag" >> $GITHUB_ENV
+
+    - name: Push the 'latest' tag
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        if git rev-parse -q --verify refs/tags/latest; then
+          git tag -d latest
+        fi
+
+        git tag latest "$latest_tag"
+
+        git push --force origin latest
+
