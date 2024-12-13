@@ -11,6 +11,8 @@ on:
         required: true
 jobs:
   flakehub-publish:
+    # Prevent workflow from running if tag is 'latest'
+    if: ${{ inputs.tag != 'latest' }}
     runs-on: "ubuntu-latest"
     permissions:
       id-token: "write"
