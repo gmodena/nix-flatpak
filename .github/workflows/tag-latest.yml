@@ -1,4 +1,4 @@
-name: "Publish tags to FlakeHub"
+name: "Alias tag as latest"
 on:
   push:
     tags:
