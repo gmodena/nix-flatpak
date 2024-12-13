@@ -27,10 +27,17 @@ on [flakehub](https://flakehub.com/flake/gmodena/nix-flatpak).
 ### Manual installation
 
 Releases are tagged with [semantic versioning](https://semver.org/). Versions below `1.0.0` are considered early, development, releases.
-Users can track a version by passing its tag as `ref`
+Users can track a version by passing its release tag as `ref`
 ```nix
 ...
-nix-flatpak.url = "github:gmodena/nix-flatpak/?ref=v0.5.1";
+nix-flatpak.url = "github:gmodena/nix-flatpak/?ref=v0.5.2";
+...
+```
+
+The `latest` tag will always point to the most recent release.
+```nix
+...
+nix-flatpak.url = "github:gmodena/nix-flatpak/?ref=latest";
 ...
 ```
 
