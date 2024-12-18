@@ -198,4 +198,13 @@ in
       they would get uninstalled on the next activation. The same applies to remotes manually setup via `flatpak remote-add`
     '';
   };
+
+  uninstallUnused = mkOption {
+    type = with types; bool;
+    default = config.services.flatpak.uninstallUnmanaged || false;
+    description = ''
+      If enabled, uninstalls unused packages and runtimes.
+      Defaults to `config.services.flatpak.uninstallUnmanaged`, or `false`.
+    '';
+  };
 }

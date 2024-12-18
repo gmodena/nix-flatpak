@@ -112,6 +112,10 @@ let
     done
   '';
 
+  flatpakUninstallUnusedCmd = installation: ''
+    ${pkgs.flatpak}/bin/flatpak --${installation} uninstall --unused --noninteractive
+  '';
+
   overridesDir =
     if (installation == "system")
     then "/var/lib/flatpak/overrides"
@@ -204,13 +208,18 @@ pkgs.writeShellScript "flatpak-managed-install" ''
 
   # Uninstall remotes that have been removed from services.flatpak.packages
   # since the previous activation.
-  ${flatpakDeleteRemotesCmd installation cfg.uninstallUnmanaged {}}
+  ${flatpakDeleteRemotesCmd installation cfg.uninstallUnmanaged {}}  
 
   # Install packages
   ${mkFlatpakInstallCmd installation updateApplications cfg.packages}
 
   # Configure overrides
   ${flatpakOverridesCmd installation {}}
+
+  # Clean up installation
+  ${if cfg.uninstallUnused 
+    then flatpakUninstallUnusedCmd installation
+    else "# services.flatpak.uninstallUnused is not enabled "}  
 
   # Save state
   ${pkgs.coreutils}/bin/ln -sf ${stateFile} ${statePath}
