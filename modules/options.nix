@@ -61,6 +61,37 @@ let
 
   updateOptions = _: {
     options = {
+      restartDelay = mkOption {
+        type = types.str;
+        default = "60s";
+        description = ''
+            Delay (in as systemd timespan format) after which update or installation is going to be retried in case of failure.
+        '';
+      };
+      exponentialBackoff = {
+       enable = mkOption {
+        type = types.bool;
+        default = false;
+        description = ''
+            Whether to enable exponential backoff in case of failure during installation or upgrade.
+        '';
+      };
+       steps = mkOption {
+        type = types.int;
+        default = 10;
+        description = ''
+            How many steps will be needed to reach the maximum restart delay.
+        '';
+      };
+
+      maxDelay = mkOption {
+        type = types.str;
+        default = "1h";
+        description = ''
+            Maximum delay (in as systemd timespan format) after which update or installation is going to be retried in case of failure.
+        '';
+      };
+      };
       onActivation = mkOption {
         type = types.bool;
         default = false;
