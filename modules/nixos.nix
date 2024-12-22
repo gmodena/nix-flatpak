@@ -19,6 +19,10 @@ in
       serviceConfig = {
         Type = "oneshot"; # TODO: should this be an async startup, to avoid blocking on network at boot ?
         ExecStart = import ./installer.nix { inherit cfg pkgs lib installation; };
+        Restart = "on-failure";
+        RestartSec = config.services.flatpak.update.restartDelay;
+        RestartSteps = lib.mkIf config.services.flatpak.update.exponentialBackoff.enable config.services.flatpak.update.exponentialBackoff.steps;
+        RestartMaxDelaySec = lib.mkIf config.services.flatpak.update.exponentialBackoff.enable config.services.flatpak.update.exponentialBackoff.maxDelay;
       };
     };
     systemd.timers."flatpak-managed-install" = lib.mkIf config.services.flatpak.update.auto.enable {
