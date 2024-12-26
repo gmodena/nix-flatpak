@@ -18,7 +18,16 @@ in
 
 
   config = lib.mkIf config.services.flatpak.enable {
-    systemd.user.services."flatpak-managed-install" = {
+    systemd.user.services."flatpak-managed-install" = let
+      exponentialBackoff = if config.services.flatpak.restartOnFailure.exponentialBackoff.enable then {
+        RestartSteps = config.services.flatpak.restartOnFailure.exponentialBackoff.steps;
+        RestartMaxDelaySec = config.services.flatpak.restartOnFailure.exponentialBackoff.maxDelay;
+      } else {};
+      restartOptions = if config.services.flatpak.restartOnFailure.enable then {
+        Restart = "on-failure";
+        RestartSec = config.services.flatpak.restartOnFailure.restartDelay;
+      } // exponentialBackoff else {};
+    in {
       Unit = {
         After = [
           "multi-user.target" # ensures that network & connectivity have been setup.
@@ -32,11 +41,7 @@ in
       Service = {
         Type = "oneshot"; # TODO: should this be an async startup, to avoid blocking on network at boot ?
         ExecStart = import ./installer.nix { inherit cfg pkgs lib installation; };
-        Restart = "on-failure";
-        RestartSec = config.services.flatpak.update.restartDelay;
-        RestartSteps = lib.mkIf config.services.flatpak.update.exponentialBackoff.enable config.services.flatpak.update.exponentialBackoff.steps;
-        RestartMaxDelaySec = lib.mkIf config.services.flatpak.update.exponentialBackoff.enable config.services.flatpak.update.exponentialBackoff.maxDelay;
-      };
+      } // restartOptions;
     };
 
     systemd.user.timers."flatpak-managed-install" = lib.mkIf config.services.flatpak.update.auto.enable {
