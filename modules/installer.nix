@@ -108,7 +108,11 @@ let
       --argjson new "$NEW_STATE" \
       '(($old.packages // []) - ($new.packages // []))[]' \
     | while read -r APP_ID; do
-        ${pkgs.flatpak}/bin/flatpak uninstall --${installation} -y $APP_ID
+        if ${pkgs.flatpak}/bin/flatpak --${installation} list --app --columns=application | ${pkgs.gnugrep}/bin/grep -q "^${appId}$"; then
+          ${pkgs.flatpak}/bin/flatpak uninstall --${installation} -y $APP_ID
+        else
+          echo "WARN: Application '${APP_ID}' was found in the state file, but not in '${installation}' installation"
+        fi
     done
   '';
 
