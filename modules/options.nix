@@ -249,7 +249,7 @@ in
       they would get uninstalled on the next activation. The same applies to remotes manually setup via `flatpak remote-add`
     '';
   };
-
+  
   restartOnFailure = mkOption {
     type = with types; submodule restartOptions;
     default = { enable = true; restartDelay = "60s"; exponentialBackoff = { enable = false; steps=10; maxDelat = "1h"; }; };
@@ -257,5 +257,14 @@ in
       If enabled, restart the flatpak-managed-install service in case of failure.
       It is possible to specify a restart delay and an exponential backoff strategy.
       '';
+      
+  uninstallUnused = mkOption {
+    type = with types; bool;
+    default = config.services.flatpak.uninstallUnmanaged || false;
+    description = ''
+      If enabled, uninstalls unused packages and runtimes.
+      Defaults to `config.services.flatpak.uninstallUnmanaged`, or `false`.
+    '';
+
   };
 }
