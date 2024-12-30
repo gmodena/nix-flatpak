@@ -108,10 +108,13 @@ let
       --argjson new "$NEW_STATE" \
       '(($old.packages // []) - ($new.packages // []))[]' \
     | while read -r APP_ID; do
-        if ${pkgs.flatpak}/bin/flatpak --${installation} list --app --columns=application | ${pkgs.gnugrep}/bin/grep -q "^${appId}$"; then
+        # Guard against cases where a user removes an application both manually and through
+        # configuration between activations. This code path triggers when uninstallUnmanaged=false
+        # and nix-flatpak fails to clean up inconsistencies before reaching the uninstall phase.
+        if ${pkgs.flatpak}/bin/flatpak --${installation} list --app --columns=application | ${pkgs.gnugrep}/bin/grep -q "^$APP_ID$"; then
           ${pkgs.flatpak}/bin/flatpak uninstall --${installation} -y $APP_ID
         else
-          echo "WARN: Application '${APP_ID}' was found in the state file, but not in '${installation}' installation"
+          echo "WARNING: failed to uninstall '$APP_ID'. '$APP_ID' found in OLD_STATE, but not in '${installation}' installation. nix-flatpak state might be inconsistent."
         fi
     done
   '';
