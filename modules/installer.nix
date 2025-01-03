@@ -3,6 +3,7 @@
 let
   utils = import ./ref.nix { inherit lib; };
   remotes = import ./remotes.nix { inherit pkgs; };
+  state = import ./state.nix { inherit pkgs; };
 
   flatpakrefCache = builtins.foldl'
     (acc: package:
@@ -74,6 +75,9 @@ let
   });
 
   statePath = "${gcroots}/${stateFile.name}";
+
+  # cache the old state. We need this to manipulate the state from nix expression.
+  stateData = state.readState stateFile;
 
   updateApplications = cfg.update.onActivation || cfg.update.auto.enable;
 
@@ -154,6 +158,8 @@ let
   flatpakCmdBuilder = installation: action: args:
     "${pkgs.flatpak}/bin/flatpak --${installation} --noninteractive ${args} ${action} ";
 
+  # TODO
+  # - don't attempt an installation if appId is present in OLD_STATE
   installCmdBuilder = installation: update: appId: flatpakref: origin:
     flatpakCmdBuilder installation " install "
       (if update then " --or-update " else " ") +
@@ -165,17 +171,56 @@ let
     flatpakCmdBuilder installation "update"
       "--no-auto-pin --commit=\"${commit}\" ${appId}";
 
+  # Generates a shell command to install or update a Flatpak application based on 
+  # various conditions. This command will either perform a new installation, update
+  # to a specific commit, or skip if the application is already installed.
+  #
+  # Example:
+  #   flatpakInstallCmd "user" false {
+  #     appId = "local.test.App";
+  #     commit = "abc123";
+  #   }
+  #
+  # Arguments:
+  #   installation    The Flatpak installation type (e.g., 'system' or 'user')
+  #   update         Boolean flag to force update of existing installations
+  #   appId          The Flatpak application ID to install
+  #   origin         (optional) The Flatpak repository origin (default: "flathub")
+  #   commit         (optional) Specific commit hash to pin the installation to
+  #   flatpakref     (optional) Path to a .flatpakref file
+  #
+  # This function relies on state.shouldExecFlatpakInstall to determine if
+  # installation is needed for the given parameters.
   flatpakInstallCmd = installation: update: { appId, origin ? "flathub", commit ? null, flatpakref ? null, ... }:
     let
-      installCmd = installCmdBuilder installation update appId flatpakref origin;
+      # Install if:
+      # - update flag is true OR
+      # - app is not installed OR
+      # - commit is specified and doesn't match current
+      shouldInstall = state.shouldExecFlatpakInstall stateData installation update appId commit;
 
-      # pin the commit if it is provided
-      pinCommitOrUpdate =
-        if commit != null
-        then updateCmdBuilder installation commit appId
-        else "";
+      installCmd =
+        if shouldInstall
+        then
+        # pin the commit if it is provided
+          let
+            pinCommitOrUpdate =
+              if commit != null
+              then updateCmdBuilder installation commit appId
+              else "";
+          in
+          # To install at a specific commit hash we need to first install the appId,
+            # then update to the pinned commit id.
+          ''
+            ${installCmdBuilder installation update appId flatpakref origin}
+            ${pinCommitOrUpdate}
+          ''
+        else
+          ''
+            # ${appId} is already installed. Skipping.
+          '';
     in
-    installCmd + "\n" + pinCommitOrUpdate;
+    installCmd;
 
   flatpakInstall = installation: update: packages: map (flatpakInstallCmd installation update) packages;
 
