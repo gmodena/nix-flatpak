@@ -1,12 +1,10 @@
 { config, lib, pkgs, ... }@args:
 let
-  cfg = lib.warnIf (! isNull config.services.flatpak.uninstallUnmanagedPackages)
-    "uninstallUnmanagedPackages is deprecated since nix-flatpak 0.4.0 and will be removed in 1.0.0. Use uninstallUnmanaged instead."
-    config.services.flatpak;
+  helpers = import ./common.nix { inherit lib config; };
+  cfg = helpers.warnDeprecated config.services.flatpak;
   installation = "user";
 in
 {
-
   options.services.flatpak = (import ./options.nix { inherit config lib pkgs; })
     // {
     enable = with lib; mkOption {
@@ -16,41 +14,32 @@ in
     };
   };
 
-
   config = lib.mkIf config.services.flatpak.enable {
-    systemd.user.services."flatpak-managed-install" = let
-      exponentialBackoff = if config.services.flatpak.restartOnFailure.exponentialBackoff.enable then {
-        RestartSteps = config.services.flatpak.restartOnFailure.exponentialBackoff.steps;
-        RestartMaxDelaySec = config.services.flatpak.restartOnFailure.exponentialBackoff.maxDelay;
-      } else {};
-      restartOptions = if config.services.flatpak.restartOnFailure.enable then {
-        Restart = "on-failure";
-        RestartSec = config.services.flatpak.restartOnFailure.restartDelay;
-      } // exponentialBackoff else {};
-    in {
-      Unit = {
-        After = [
-          "multi-user.target" # ensures that network & connectivity have been setup.
-        ];
-      };
-      Install = {
-        WantedBy = [
-          "default.target" # multi-user target with a GUI. For a desktop, this is typically going to be the graphical.target
-        ];
-      };
-      Service = {
-        Type = "oneshot"; # TODO: should this be an async startup, to avoid blocking on network at boot ?
-        ExecStart = import ./installer.nix { inherit cfg pkgs lib installation; };
-      } // restartOptions;
+    systemd.user.services."flatpak-managed-install" = {
+      Unit.After = [ "multi-user.target" ];
+      Install.WantedBy = [ "default.target" ];
+      Service = helpers.mkCommonServiceConfig
+        {
+          inherit cfg pkgs lib installation;
+          executionContext = "service-start";
+        } // helpers.mkRestartOptions cfg;
     };
 
-    systemd.user.timers."flatpak-managed-install" = lib.mkIf config.services.flatpak.update.auto.enable {
+    # Create a service that will only be started by a timer.
+    # We need a separate service to provide a custom Enviroment
+    # that installer used to determine if certain action (e.g. updates)
+    # should be performed at activation or not.
+    systemd.user.services."flatpak-managed-install-timer" = lib.mkIf config.services.flatpak.update.auto.enable {
+      Service = helpers.mkCommonServiceConfig
+        {
+          inherit cfg pkgs lib installation;
+          executionContext = "timer";
+        } // helpers.mkRestartOptions cfg;
+    };
+
+    systemd.user.timers."flatpak-managed-install-timer" = lib.mkIf config.services.flatpak.update.auto.enable {
       Unit.Description = "flatpak update schedule";
-      Timer = {
-        Unit = "flatpak-managed-install";
-        OnCalendar = config.services.flatpak.update.auto.onCalendar;
-        Persistent = "true";
-      };
+      Timer = helpers.mkCommonTimerConfig cfg;
       Install.WantedBy = [ "timers.target" ];
     };
 

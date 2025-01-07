@@ -1,4 +1,4 @@
-{ cfg, pkgs, lib, installation ? "system", ... }:
+{ cfg, pkgs, lib, installation ? "system", executionContext ? "service-start", ... }:
 
 let
   utils = import ./ref.nix { inherit lib; };
@@ -74,8 +74,6 @@ let
   });
 
   statePath = "${gcroots}/${stateFile.name}";
-
-  updateApplications = cfg.update.onActivation || cfg.update.auto.enable;
 
   # This script is used to manage the lifecyle of all flatpaks (remotes, packages)
   # installed on the system.
@@ -186,48 +184,107 @@ let
 
   flatpakInstall = installation: update: packages: map (flatpakInstallCmd installation update) packages;
 
-  mkFlatpakInstallCmd = installation: update: packages: builtins.foldl' (x: y: x + y) '''' (flatpakInstall installation update packages);
 
   flatpakDeleteRemotesCmd = remotes.flatpakDeleteRemotesCmd;
-  mkFlatpakAddRemotesCmd = remotes.mkFlatpakAddRemotesCmd;
-in
-pkgs.writeShellScript "flatpak-managed-install" ''
-  # This script is triggered at build time by a transient systemd unit.
-  set -eu
 
-  # Setup state variables for packages and remotes
-  NEW_STATE=$(${pkgs.coreutils}/bin/cat ${stateFile})
-  if [[ -f ${statePath} ]]; then
-    OLD_STATE=$(${pkgs.coreutils}/bin/cat ${statePath})
-  else
-    OLD_STATE={}
-  fi
+  updateTrigger =
+    if executionContext == "service-start" then cfg.update.onActivation
+    else if executionContext == "timer" then cfg.update.auto.enable
+    else lib.warn ("executionContext=${executionContext}: invalid arugment.") false;
 
-  # Handle unmanaged packages and remotes.
-  ${handleUnmanagedStateCmd installation cfg.uninstallUnmanaged}
+  # Initializes state variables for managing Flatpak packages and remotes.
+  # NEW_STATE is set to the content of `stateFile`. If `statePath` exists,
+  # OLD_STATE is set to its content; otherwise, OLD_STATE is an empty dictionary.
+  #
+  # Inputs:
+  # - stateFile: Path to the file containing the desired state.
+  # - statePath: Path to the file representing the current state.
+  # - pkgs.coreutils: Used for accessing the `cat` utility.
+  mkLoadStateCmd = ''
+      # Setup state variables for packages and remotes
+    NEW_STATE=$(${pkgs.coreutils}/bin/cat ${stateFile})
+    if [[ -f ${statePath} ]]; then
+        OLD_STATE=$(${pkgs.coreutils}/bin/cat ${statePath})
+    else
+        OLD_STATE={}
+    fi
+  '';
 
-  # Configure remotes
-  ${mkFlatpakAddRemotesCmd installation cfg.remotes}
+  # Generates a command to install Flatpak packages defined in `cfg.packages`.
+  # Combines installation commands using `flatpakInstall` for each package.
+  # 
+  # Inputs:
+  # - installation: Installation context for Flatpak.
+  # - updateTrigger: Triggers updates if enabled.
+  # - cfg.packages: List of Flatpak packages to install.
+  mkInstallCmd = builtins.foldl' (x: y: x + y) '''' (flatpakInstall installation updateTrigger cfg.packages);
 
-  # Uninstall packages that have been removed from services.flatpak.packages
-  # since the previous activation.
-  ${flatpakUninstallCmd installation {}}
+  # Generates a command to uninstall Flatpak packages.
+  # Uses `flatpakUninstallCmd` to produce the necessary command.
+  # 
+  # Inputs:
+  # - installation: Installation context for Flatpak.
+  mkUninstallCmd = flatpakUninstallCmd installation { };
 
-  # Uninstall remotes that have been removed from services.flatpak.packages
-  # since the previous activation.
-  ${flatpakDeleteRemotesCmd installation cfg.uninstallUnmanaged {}}  
+  # Creates a command to manage unmanaged Flatpak states based on configuration.
+  # Uses `handleUnmanagedStateCmd` with the current installation context and 
+  # the `cfg.uninstallUnmanaged` option.
+  # 
+  # Inputs:
+  # - installation: Installation context for Flatpak.
+  # - cfg.uninstallUnmanaged: Boolean indicating whether to handle unmanaged packages.
+  mkHandleUnmanagedStateCmd = handleUnmanagedStateCmd installation cfg.uninstallUnmanaged;
 
-  # Install packages
-  ${mkFlatpakInstallCmd installation updateApplications cfg.packages}
+  # Produces a command to delete Flatpak remotes if `cfg.uninstallUnmanaged` is enabled.
+  # Uses `flatpakDeleteRemotesCmd` to build the command.
+  # 
+  # Inputs:
+  # - installation: Installation context for Flatpak.
+  # - cfg.uninstallUnmanaged: Boolean to control removal of unmanaged remotes.
+  mkDeleteRemotesCmd = flatpakDeleteRemotesCmd installation cfg.uninstallUnmanaged { };
 
-  # Configure overrides
-  ${flatpakOverridesCmd installation {}}
+  # Generates a command to set Flatpak overrides based on the current installation context.
+  # Uses `flatpakOverridesCmd` to build the command.
+  # 
+  # Inputs:
+  # - installation: Installation context for Flatpak.
+  mkOverridesCmd = flatpakOverridesCmd installation { };
 
-  # Clean up installation
-  ${if cfg.uninstallUnused 
+  # Generates a command to uninstall unused Flatpak packages if `cfg.uninstallUnused` is enabled.
+  # Otherwise, outputs a comment indicating the feature is not enabled.
+  # 
+  # Inputs:
+  # - installation: Installation context for Flatpak.
+  # - cfg.uninstallUnused: Boolean indicating whether to uninstall unused packages.
+  mkUninstallUnusedCmd =
+    if cfg.uninstallUnused
     then flatpakUninstallUnusedCmd installation
-    else "# services.flatpak.uninstallUnused is not enabled "}  
+    else "# services.flatpak.uninstallUnused is not enabled ";
 
-  # Save state
-  ${pkgs.coreutils}/bin/ln -sf ${stateFile} ${statePath}
-''
+  # Links the current state file (`stateFile`) to the state path (`statePath`).
+  # This ensures that the current state is saved persistently.
+  # 
+  # Inputs:
+  # - stateFile: Path to the current state file.
+  # - statePath: Path to save the state file.
+  # - pkgs.coreutils: Used for accessing the `ln` utility.
+  mkSaveStateCmd = '' 
+    ${pkgs.coreutils}/bin/ln -sf ${stateFile} ${statePath}
+  '';
+
+  # Generates a command to add Flatpak remotes based on the provided configuration and installation context.
+  # Delegates to `remotes.mkFlatpakAddRemotesCmd` to construct the necessary commands.
+  # 
+  # Inputs:
+  # - installation: Installation context for Flatpak.
+  # - cfg.remotes: Configuration specifying the remotes to be added.
+  # - remotes: Module providing the `mkFlatpakAddRemotesCmd` function.
+  # 
+  # Output:
+  # - Command to add the specified Flatpak remotes.
+  mkAddRemotesCmd = remotes.mkFlatpakAddRemotesCmd installation cfg.remotes;
+
+in
+{
+  inherit mkLoadStateCmd mkInstallCmd mkUninstallCmd mkHandleUnmanagedStateCmd mkAddRemotesCmd mkDeleteRemotesCmd mkOverridesCmd mkUninstallUnusedCmd mkSaveStateCmd;
+}
