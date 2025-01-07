@@ -1,0 +1,10 @@
+{
+  "overrides": {},
+  "packages": [
+    "im.riot.Riot"
+  ],
+  "remotes": [
+    "flathub"
+  ]
+}
+
