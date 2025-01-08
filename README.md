@@ -222,12 +222,6 @@ Package overrides can be declared via `services.flatpak.overrides`. Following is
 
 A couple of things to be aware of when working with `nix-flatpak`.
 
-## Installation on Activation: Side Effects
-
-During activation, `nix-flatpak` evaluates the system's flatpak configuration to determine whether flatpak install commands need to be executed. Typically, re-installation of Flatpak packages is avoided, unless the user has enabled `onActivation` or `auto` package updates.
-
-However, due to current [implementation limitations](https://github.com/gmodena/nix-flatpak/issues/85) (as of January 2025), if a package is pinned to a specific commit hash, nix-flatpak will query the remote repository to verify the reference. This introduces a network call, even though the Flatpak package itself will not be re-downloaded. As a result, this behavior disrupts "offline" activations.
-
 ## Infinite recursion in home-manager imports
 
 Users have reported an infinite recursion stacktrace when importing an home-manager module outside of where home-manager
