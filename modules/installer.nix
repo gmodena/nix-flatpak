@@ -200,11 +200,12 @@ let
   # installation is needed for the given parameters.
   flatpakInstallCmd = installation: update: { appId, origin ? "flathub", commit ? null, flatpakref ? null, ... }:
     let
+      app = if ! builtins.isNull flatpakref then flatpakrefCache.${(utils.sanitizeUrl flatpakref)}.Name else appId;
       # Install if:
       # - update flag is true OR
       # - app is not installed OR
       # - commit is specified and doesn't match current
-      shouldInstall = state.shouldExecFlatpakInstall stateData installation update appId commit;
+      shouldInstall = state.shouldExecFlatpakInstall stateData installation update app commit;
 
       installCmd =
         if shouldInstall
@@ -213,7 +214,7 @@ let
           let
             pinCommitOrUpdate =
               if commit != null
-              then updateCmdBuilder installation commit appId
+              then updateCmdBuilder installation commit app
               else "";
           in
           # To install at a specific commit hash we need to first install the appId,
@@ -224,7 +225,7 @@ let
           ''
         else
           ''
-            # ${appId} is already installed. Skipping.
+            # ${app} is already installed. Skipping.
           '';
     in
     installCmd;
