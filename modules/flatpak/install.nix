@@ -190,7 +190,7 @@ let
   updateTrigger =
     if executionContext == "service-start" then cfg.update.onActivation
     else if executionContext == "timer" then cfg.update.auto.enable
-    else lib.warn ("executionContext=${executionContext}: invalid arugment.") false;
+    else throw "flatpak-managed-install: invalid execution context `${executionContext}`" false;
 
   # Initializes state variables for managing Flatpak packages and remotes.
   # NEW_STATE is set to the content of `stateFile`. If `statePath` exists,
