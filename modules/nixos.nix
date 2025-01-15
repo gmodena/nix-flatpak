@@ -14,7 +14,7 @@ in
       serviceConfig = helpers.mkCommonServiceConfig
         {
           inherit cfg pkgs lib installation;
-          invokedFrom = "service-start";
+          executionContext = "service-start";
         } // helpers.mkRestartOptions cfg;
     };
 
@@ -26,7 +26,7 @@ in
       serviceConfig = helpers.mkCommonServiceConfig
         {
           inherit cfg pkgs lib installation;
-          invokedFrom = "timer";
+          executionContext = "timer";
         } // helpers.mkRestartOptions cfg;
     };
 
