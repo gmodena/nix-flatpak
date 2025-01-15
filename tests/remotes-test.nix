@@ -4,7 +4,7 @@ let
   inherit (pkgs) lib;
   inherit (lib) runTests;
   installation = "system";
-  installer = import ../modules/remotes.nix { inherit pkgs; };
+  installer = import ../modules/flatpak/remotes.nix { inherit pkgs; };
 in
 runTests {
   testMkFlatpakAddRemotesCmd = {

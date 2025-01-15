@@ -3,7 +3,7 @@
 let
   inherit (pkgs) lib;
   inherit (lib) runTests;
-  ref = import ../modules/ref.nix { inherit lib; };
+  ref = import ../modules/flatpak/ref.nix { inherit lib; };
 
   pwd = builtins.getEnv "PWD";
   fixturePath = "file://${pwd}/fixtures/package.flatpakref";
