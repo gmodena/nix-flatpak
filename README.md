@@ -186,7 +186,7 @@ might be a better fit.
 ### Overrides
 
 Package overrides can be declared via `services.flatpak.overrides`. Following is a usage example:
-```
+```nix
 {
   services.flatpak.overrides = {
     global = {
