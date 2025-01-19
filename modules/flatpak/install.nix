@@ -156,31 +156,64 @@ let
         done
   '';
 
-  flatpakCmdBuilder = installation: action: args:
-    "${pkgs.flatpak}/bin/flatpak --${installation} --noninteractive ${args} ${action} ";
-
-  installCmdBuilder = installation: update: appId: flatpakref: origin:
-    flatpakCmdBuilder installation " install "
-      (if update then " --or-update " else " ") +
-    (if utils.isFlatpakref { flatpakref = flatpakref; }
-    then installOrUpdateFromFlatpakref flatpakref installation # If the appId is a flatpakref URL, extract the appId and origin from the flatpakref.
-    else " ${origin} ${appId} ");
-
-  updateCmdBuilder = installation: commit: appId:
-    flatpakCmdBuilder installation "update"
-      "--no-auto-pin --commit=\"${commit}\" ${appId}";
-
   flatpakInstallCmd = installation: update: { appId, origin ? "flathub", commit ? null, flatpakref ? null, ... }:
     let
+      cmdBuilder = installation: action: args:
+        "${pkgs.flatpak}/bin/flatpak --${installation} --noninteractive ${action} ${args}";
+
+      installCmdBuilder = installation: update: appId: flatpakref: origin:
+        let
+          updateFlag = if update then "--or-update" else "";
+          sourceArgs =
+            if utils.isFlatpakref { flatpakref = flatpakref; }
+            then installOrUpdateFromFlatpakref flatpakref installation
+            else "${origin} ${appId}";
+        in
+        cmdBuilder installation "install" "${updateFlag} ${sourceArgs}";
+
+      resolvedAppId =
+        if flatpakref != null
+        then flatpakrefCache.${(utils.sanitizeUrl flatpakref)}.Name
+        else appId;
+
+      # flatpak install ...
       installCmd = installCmdBuilder installation update appId flatpakref origin;
 
-      # pin the commit if it is provided
-      pinCommitOrUpdate =
+      # flatpak update ...
+      updatePinnedCmd =
         if commit != null
-        then updateCmdBuilder installation commit appId
+        then cmdBuilder installation "update" "--commit=\"${commit}\" ${resolvedAppId}"
         else "";
+
+      installAndUpdatePinnedCmd = ''
+        ${if installCmd != null then installCmd else ""}
+        ${if updatePinnedCmd != null then updatePinnedCmd else ""}
+      '';
+
+      # Check if we need to execute flatpak install .... Which is when the state has changed:
+      # 1. the script needs to run with --or-update (update.onActivation and/or update.auto are enabled).
+      # 2. the application is not present in OLD_STATE and should be installed.
+      # 3. the application is present in OLD_STATE, but is now pinned (explicitely)
+      #   at a different hash than the currently installed one.
+      determineFlatpakStateChange =
+        let
+          safeCommit = if commit == null then "" else commit;
+        in
+        ''
+          if ${pkgs.jq}/bin/jq -r -n --argjson old "$OLD_STATE" --arg appId "${resolvedAppId}" '$old.packages | index($appId) != null' | ${pkgs.gnugrep}/bin/grep -q true; then
+            if [[ -n "${safeCommit}" ]] && [[ "$( ${pkgs.flatpak}/bin/flatpak --${installation} info "${resolvedAppId}" --show-commit 2>/dev/null )" != "${safeCommit}" ]]; then
+              ${updatePinnedCmd}
+              : # No operation if no update command needs to run.
+            fi
+          else
+            ${installAndUpdatePinnedCmd}
+            : # No operation if no install command needs to run.
+          fi
+        '';
     in
-    installCmd + "\n" + pinCommitOrUpdate;
+    if update then installAndUpdatePinnedCmd else determineFlatpakStateChange;
+
+
 
   flatpakInstall = installation: update: packages: map (flatpakInstallCmd installation update) packages;
 

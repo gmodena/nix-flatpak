@@ -7,7 +7,9 @@ let
       args-flag = ''${if args == null then "" else args}'';
     in
     ''
-      ${pkgs.flatpak}/bin/flatpak remote-add --${installation} --if-not-exists ${args-flag} ${gpg-import-flag} ${name} ${location}
+      if ! ${pkgs.flatpak}/bin/flatpak remotes --${installation} --columns=name | ${pkgs.gnugrep}/bin/grep -q '^${name}$'; then
+        ${pkgs.flatpak}/bin/flatpak remote-add --${installation} --if-not-exists ${args-flag} ${gpg-import-flag} ${name} ${location}
+      fi
     '';
 
   flatpakAddRemote = installation: remotes: map (flatpakAddRemotesCmd installation) remotes;
