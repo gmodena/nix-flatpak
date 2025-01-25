@@ -23,13 +23,13 @@ runTests {
     # invoke the installer from a timer, when update.auto is disabled but update.onActivation is enabled.
     # Packages won't be updated.
     expr = timerExecutionContext.mkInstallCmd;
-    expected = "${pkgs.flatpak}/bin/flatpak --system --noninteractive    install   some-remote SomeAppId \n";
+    expected = "if ${pkgs.jq}/bin/jq -r -n --argjson old \"$OLD_STATE\" --arg appId \"SomeAppId\" '$old.packages | index($appId) != null' | ${pkgs.gnugrep}/bin/grep -q true; then\n  if [[ -n \"\" ]] && [[ \"$( ${pkgs.flatpak}/bin/flatpak --system info \"SomeAppId\" --show-commit 2>/dev/null )\" != \"\" ]]; then\n    \n    : # No operation if no update command needs to run.\n  fi\nelse\n  ${pkgs.flatpak}/bin/flatpak --system --noninteractive install  some-remote SomeAppId\n\n\n  : # No operation if no install command needs to run.\nfi\n";
   };
 
   testUpdate = {
     # invoke the installer at service start, when update.auto is disabled but update.onActivation is enabled.
     # Packages will be updated.
     expr = serviceStartExecutionContext.mkInstallCmd;
-    expected = "${pkgs.flatpak}/bin/flatpak --system --noninteractive  --or-update   install   some-remote SomeAppId \n";
+    expected = "${pkgs.flatpak}/bin/flatpak --system --noninteractive install --or-update some-remote SomeAppId\n\n";
   };
 }
