@@ -4,6 +4,9 @@ let
   utils = import ./ref.nix { inherit lib; };
   remotes = import ./remotes.nix { inherit pkgs; };
 
+  isFlatpakFile = package:
+    package.path == null;
+
   flatpakrefCache = builtins.foldl'
     (acc: package:
       acc // utils.flatpakrefToAttrSet package acc
@@ -55,7 +58,7 @@ let
       (package:
         if utils.isFlatpakref package
         then flatpakrefCache.${(utils.sanitizeUrl package.flatpakref)}.Name # application id from flatpakref
-        else package.appId
+        else if isFlatpakFile package then package.path else package.appId
       )
       cfg.packages);
     overrides = cfg.overrides;
@@ -156,63 +159,66 @@ let
         done
   '';
 
-  flatpakInstallCmd = installation: update: { appId, origin ? "flathub", commit ? null, flatpakref ? null, ... }:
-    let
-      cmdBuilder = installation: action: args:
-        "${pkgs.flatpak}/bin/flatpak --${installation} --noninteractive ${action} ${args}";
 
-      installCmdBuilder = installation: update: appId: flatpakref: origin:
-        let
-          updateFlag = if update then "--or-update" else "";
-          sourceArgs =
-            if utils.isFlatpakref { flatpakref = flatpakref; }
-            then installOrUpdateFromFlatpakref flatpakref installation
-            else "${origin} ${appId}";
-        in
-        cmdBuilder installation "install" "${updateFlag} ${sourceArgs}";
+  flatpakInstallCmd = installation: update: { appId, origin ? "flathub", commit ? null, flatpakref ? null, path ? null, ... }:
+    if path == null then
+      let
+        cmdBuilder = installation: action: args:
+          "${pkgs.flatpak}/bin/flatpak --${installation} --noninteractive ${action} ${args}";
 
-      resolvedAppId =
-        if flatpakref != null
-        then flatpakrefCache.${(utils.sanitizeUrl flatpakref)}.Name
-        else appId;
+        installCmdBuilder = installation: update: appId: flatpakref: origin:
+          let
+            updateFlag = if update then "--or-update" else "";
+            sourceArgs =
+              if utils.isFlatpakref { flatpakref = flatpakref; }
+              then installOrUpdateFromFlatpakref flatpakref installation
+              else "${origin} ${appId}";
+          in
+          cmdBuilder installation "install" "${updateFlag} ${sourceArgs}";
 
-      # flatpak install ...
-      installCmd = installCmdBuilder installation update appId flatpakref origin;
+        resolvedAppId =
+          if flatpakref != null
+          then flatpakrefCache.${(utils.sanitizeUrl flatpakref)}.Name
+          else appId;
 
-      # flatpak update ...
-      updatePinnedCmd =
-        if commit != null
-        then cmdBuilder installation "update" "--commit=\"${commit}\" ${resolvedAppId}"
-        else "";
+        # flatpak install ...
+        installCmd = installCmdBuilder installation update appId flatpakref origin;
 
-      installAndUpdatePinnedCmd = ''
-        ${if installCmd != null then installCmd else ""}
-        ${if updatePinnedCmd != null then updatePinnedCmd else ""}
-      '';
+        # flatpak update ...
+        updatePinnedCmd =
+          if commit != null
+          then cmdBuilder installation "update" "--commit=\"${commit}\" ${resolvedAppId}"
+          else "";
 
-      # Check if we need to execute flatpak install .... Which is when the state has changed:
-      # 1. the script needs to run with --or-update (update.onActivation and/or update.auto are enabled).
-      # 2. the application is not present in OLD_STATE and should be installed.
-      # 3. the application is present in OLD_STATE, but is now pinned (explicitely)
-      #   at a different hash than the currently installed one.
-      determineFlatpakStateChange =
-        let
-          safeCommit = if commit == null then "" else commit;
-        in
-        ''
-          if ${pkgs.jq}/bin/jq -r -n --argjson old "$OLD_STATE" --arg appId "${resolvedAppId}" '$old.packages | index($appId) != null' | ${pkgs.gnugrep}/bin/grep -q true; then
-            if [[ -n "${safeCommit}" ]] && [[ "$( ${pkgs.flatpak}/bin/flatpak --${installation} info "${resolvedAppId}" --show-commit 2>/dev/null )" != "${safeCommit}" ]]; then
-              ${updatePinnedCmd}
-              : # No operation if no update command needs to run.
-            fi
-          else
-            ${installAndUpdatePinnedCmd}
-            : # No operation if no install command needs to run.
-          fi
+        installAndUpdatePinnedCmd = ''
+          ${if installCmd != null then installCmd else ""}
+          ${if updatePinnedCmd != null then updatePinnedCmd else ""}
         '';
-    in
-    if update then installAndUpdatePinnedCmd else determineFlatpakStateChange;
 
+        # Check if we need to execute flatpak install .... Which is when the state has changed:
+        # 1. the script needs to run with --or-update (update.onActivation and/or update.auto are enabled).
+        # 2. the application is not present in OLD_STATE and should be installed.
+        # 3. the application is present in OLD_STATE, but is now pinned (explicitely)
+        #   at a different hash than the currently installed one.
+        determineFlatpakStateChange =
+          let
+            safeCommit = if commit == null then "" else commit;
+          in
+          ''
+            if ${pkgs.jq}/bin/jq -r -n --argjson old "$OLD_STATE" --arg appId "${resolvedAppId}" '$old.packages | index($appId) != null' | ${pkgs.gnugrep}/bin/grep -q true; then
+              if [[ -n "${safeCommit}" ]] && [[ "$( ${pkgs.flatpak}/bin/flatpak --${installation} info "${resolvedAppId}" --show-commit 2>/dev/null )" != "${safeCommit}" ]]; then
+                ${updatePinnedCmd}
+                : # No operation if no update command needs to run.
+              fi
+            else
+              ${installAndUpdatePinnedCmd}
+              : # No operation if no install command needs to run.
+            fi
+          '';
+      in
+      if update then installAndUpdatePinnedCmd else determineFlatpakStateChange
+    else
+      '' ${pkgs.flatpak}/bin/flatpak --${installation} install --noninteractive ${path}'';
 
 
   flatpakInstall = installation: update: packages: map (flatpakInstallCmd installation update) packages;
