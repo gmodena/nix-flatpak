@@ -46,6 +46,12 @@ let
         description = "App repository origin (default: flathub).";
       };
 
+      path = mkOption {
+        type = types.nullOr types.str;
+        description = "Path to a local .flatpak file.";
+        default = null;
+      };
+
       flatpakref = mkOption {
         type = types.nullOr types.str;
         description = "The flakeref URI of the app to install. ";
