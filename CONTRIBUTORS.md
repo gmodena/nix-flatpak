@@ -16,3 +16,5 @@ A list of folks that helped with this project.
   * Add override management.
 * [Lillecarl](https://github.com/Lillecarl)
   * Bugfix: missing path to coreutils commands.
+* [Nick1296](https://github.com/Nick1296)
+  * Enhanced the installer's reliability and added retry-on-error logic to the systemd unit.
