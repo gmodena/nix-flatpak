@@ -5,6 +5,19 @@
 Declarative flatpak manager for NixOS inspired by [declarative-flatpak](https://github.com/GermanBread/declarative-flatpak) and nix-darwin's [homebrew](https://github.com/LnL7/nix-darwin/blob/master/modules/homebrew.nix) module.
 NixOs and home-manager modules are provided for system wide or user flatpaks installation.
 
+## Versioning
+
+We use Git tags and branches to manage versions:
+
+- **`0.6.0`** → Current stable release.
+- **`latest`** → Always points to the most recent stable version (`0.6.0` as of now).
+- **`main`** → Unstable, development branch.
+
+
+This project is released as a [flake](https://nixos.wiki/wiki/Flakes), and is published
+on [flakehub](https://flakehub.com/flake/gmodena/nix-flatpak).
+
+
 ## Background
 
 This project was inspired by  Martin Wimpress' [Blending NixOS with Flathub for friends and family](https://talks.nixcon.org/nixcon-2023/talk/MNUFFP/)
@@ -19,18 +32,13 @@ For such applications, a convergent approach is a reasonable tradeoff wrt system
 Flatpak applications are installed by systemd oneshot service triggered at system activation. Depending on
 the number of applications to install, this could increase activation time significantly. 
 
-## Releases
-
-This project is released as a [flake](https://nixos.wiki/wiki/Flakes), and is published
-on [flakehub](https://flakehub.com/flake/gmodena/nix-flatpak).
-
 ### Manual installation
 
 Releases are tagged with [semantic versioning](https://semver.org/). Versions below `1.0.0` are considered early, development, releases.
 Users can track a version by passing its release tag as `ref`
 ```nix
 ...
-nix-flatpak.url = "github:gmodena/nix-flatpak/?ref=v0.5.2";
+nix-flatpak.url = "github:gmodena/nix-flatpak/?ref=v0.6.0";
 ...
 ```
 
@@ -42,6 +50,15 @@ nix-flatpak.url = "github:gmodena/nix-flatpak/?ref=latest";
 ```
 
 The `main` branch is considered unstable, and _might_ break installs.
+```nix
+...
+nix-flatpak.url = "github:gmodena/nix-flatpak/";
+...
+```
+
+### Starter config example
+You can find an example configuration in [testing-base/flatpak.nix](https://github.com/gmodena/nix-flatpak/tree/main/testing-base).
+
 
 ## Getting Started
 
@@ -217,6 +234,24 @@ Package overrides can be declared via `services.flatpak.overrides`. Following is
   };
 }
 ```
+
+### Systemd unit retry on error
+On flaky network connections the `nix-flatpak` installer script may fail. 
+
+The `restartOnFailure` option controls the behavior of the flatpak-managed-install service when it encounters a failure. As of 0.6.0 it is enabled by default, and wraps systemd APIs. It's configuration can be modified by setting:
+```nix
+restartOnFailure = {
+  enable = true;
+  restartDelay = "60s";
+  exponentialBackoff = {
+    enable = false;
+    steps = 10;
+    maxDelay = "1h";
+  };
+};
+```
+
+See `module/options.nix` and systemd's own documentation for more details.
 
 # Known issues
 

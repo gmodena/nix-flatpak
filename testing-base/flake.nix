@@ -1,8 +1,8 @@
 # flake.nix
 {
   inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs/nixos-23.11";
-    home-manager.url = "github:nix-community/home-manager/release-23.11";
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-24.11";
+    home-manager.url = "github:nix-community/home-manager/release-24.11";
     home-manager.inputs.nixpkgs.follows = "nixpkgs";
     flatpaks.url = "../";
   };
@@ -17,6 +17,7 @@
         modules = [
           flatpaks.nixosModules.nix-flatpak
           ./configuration.nix
+          ./flatpak.nix
         ];
       };
 
@@ -24,7 +25,6 @@
       nixosConfigurations.test-hm-module = nixpkgs.lib.nixosSystem {
         inherit system;
         modules = [
-          ./common.nix
           home-manager.nixosModules.home-manager
           {
             home-manager.useGlobalPkgs = true;
@@ -36,6 +36,7 @@
             ];
             home-manager.users.antani.home.stateVersion = "23.11";
           }
+          ./configuration.nix
         ];
       };
     };

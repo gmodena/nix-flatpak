@@ -2,6 +2,11 @@
 
 A base GDM + Gnome `nixos` system to experiment with `nix-flatpak`.
 
+The config is structured as follows
+* `flake.nix` provides two outputs; one installs nix-flatpak as a home-manager module, the other a NixOS module. See the **Getting Started** session below for more details.
+* `configuration.nix` contains system config (including qemu VMs specs, users, ssh etc.)
+* `flatpak.nix` contains a simple [nix-flatpak](https://github.com/gmodena/nix-flatpak) configuration.
+
 ## Getting started
 Build a qemu virtual machine with
 ```bash
@@ -13,7 +18,7 @@ or
 nix build .#nixosConfigurations.test-hm-module.config.system.build.vm
 ```
 
-To setup `nix-flatpak` as a nixos or HomeManager module respectively.
+To setup `nix-flatpak` as a nixos or a HomeManager module respectively.
 
 
 Start the vm with
@@ -31,4 +36,9 @@ Cerentials:
 Login via GDM or ssh into the vm with
 ```bash
 ssh -oUserKnownHostsFile=/dev/null -oStrictHostKeyChecking=no antani@localhost -p 2221
+```
+
+Monitor the state of installed applications with:
+```
+flatpak list
 ```

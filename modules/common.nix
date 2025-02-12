@@ -18,7 +18,7 @@ rec {
   };
 
   mkCommonTimerConfig = cfg: {
-    Unit = "flatpak-managed-install-timer";
+    Unit = "flatpak-managed-install-timer.service";
     OnCalendar = cfg.update.auto.onCalendar;
     Persistent = "true";
   };

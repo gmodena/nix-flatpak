@@ -38,9 +38,9 @@ in
     };
 
     systemd.user.timers."flatpak-managed-install-timer" = lib.mkIf config.services.flatpak.update.auto.enable {
-      Unit.Description = "flatpak update schedule";
-      Timer = helpers.mkCommonTimerConfig cfg;
       Install.WantedBy = [ "timers.target" ];
+      Timer = helpers.mkCommonTimerConfig cfg;
+      Unit.Description = "flatpak update schedule";
     };
 
     home.activation = {
