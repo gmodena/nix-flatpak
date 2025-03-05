@@ -22,7 +22,7 @@ runTests {
     # invoke the installer on activation, when update.auto is enabled but update.onActivation is disabled.
     # Packages won't be updated.
     expr = serviceStartExecutionContext.mkInstallCmd;
-    expected = "if ${pkgs.jq}/bin/jq -r -n --argjson old \"$OLD_STATE\" --arg appId \"SomeAppId\" '$old.packages | index($appId) != null' | ${pkgs.gnugrep}/bin/grep -q true; then\n  if [[ -n \"\" ]] && [[ \"$( ${pkgs.flatpak}/bin/flatpak --system info \"SomeAppId\" --show-commit 2>/dev/null )\" != \"\" ]]; then\n    \n    : # No operation if no update command needs to run.\n  fi\nelse\n  ${pkgs.flatpak}/bin/flatpak --system --noninteractive install  some-remote SomeAppId\n\n\n  : # No operation if no install command needs to run.\nfi\n";
+    expected = "# Check if app exists in old state, handling both formats\nif $( ${pkgs.jq}/bin/jq -r -n --argjson old \"$OLD_STATE\" --arg appId \"SomeAppId\" --from-file ${../modules/flatpak/state/app_exists.jq} | ${pkgs.gnugrep}/bin/grep -q true ); then\n  # App exists in old state, check if commit changed\n  if [[ -n \"\" ]] && [[ \"$( ${pkgs.flatpak}/bin/flatpak --system info \"SomeAppId\" --show-commit 2>/dev/null )\" != \"\" ]]; then\n    \n    : # No operation if no install command needs to run.\n  fi\nelse\n  ${pkgs.flatpak}/bin/flatpak --system --noninteractive install  some-remote SomeAppId\n\n\n  : # No operation if no install command needs to run.\nfi\n";
   };
 
   testUpdate = {
