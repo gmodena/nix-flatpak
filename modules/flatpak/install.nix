@@ -103,14 +103,15 @@ let
       # Add all installed Flatpak packages to the old state, so only the managed ones (new state) will be kept
       INSTALLED_PACKAGES=$(${pkgs.flatpak}/bin/flatpak --${installation} list --app --columns=application,origin,active)
 
-      # Add all configured remote to the old state, so that only managed ones will be kept across generations.
-      MANAGED_REMOTES=$(${pkgs.flatpak}/bin/flatpak --${installation} remotes --columns=name)
+      # Add all installed remotes to the old state, so that only managed (= declared in nix-flatpak's config)
+      # ones will be kept across generations.
+      INSTALLED_REMOTES=$(${pkgs.flatpak}/bin/flatpak --${installation} remotes --columns=name)
       
       # Add unmanaged packages and remotes to old state.
       OLD_STATE=$(${pkgs.jq}/bin/jq -r -n \
         --argjson old "$OLD_STATE" \
         --arg installed_packages "$INSTALLED_PACKAGES" \
-        --arg managed_remotes "$MANAGED_REMOTES" \
+        --arg installed_remotes "$INSTALLED_REMOTES" \
         --from-file ${./state/parse_statefile.jq})
     '';
 

@@ -1,13 +1,18 @@
 # Check if app exists in the state `packages` attr, regardless of
-# statefle format
+# statefile format and handling mixed arrays
 if $old.packages == null then
-    false
-elif ($old.packages | length > 0) and ($old.packages[0] | type == "string") then
-    # Old format: list of strings
-    $old.packages | index($appId) != null
-elif ($old.packages | length > 0) and ($old.packages[0] | type == "object") then
-    # New format: list of objects with appId field
-    $old.packages | map(.appId) | index($appId) != null
+  false
+elif ($old.packages | length == 0) then
+  false
 else
-    false
+  # Handle packages array with potentially mixed formats
+  $old.packages | any(
+    if type == "string" then
+      . == $appId
+    elif type == "object" and has("appId") then
+      .appId == $appId
+    else
+      false
+    end
+  )
 end

@@ -1,14 +1,16 @@
-# Extract app IDs regardless of format
 def getAppIds(packages):
   if packages == null then []
-    elif (packages | length > 0) and (packages[0] | type == "string") then
-      # Old format: list of strings
-      packages
-    elif (packages | length > 0) and (packages[0] | type == "object") then
-      # New format: list of objects with appId field
-      packages | map(.appId)
-    else []
-end;
+  else
+    packages | map(
+      # Old format
+      if type == "string" then .
+      # Modern format
+      elif type == "object" and has("appId") then .appId
+      else null
+      end
+    ) | map(select(. != null))
+  end
+;
 
-# Get app IDs from both old and new state
-(getAppIds($old.packages) - getAppIds($new.packages))[]
+# Generate the difference between `old` and `new` states.
+getAppIds($old.packages) - getAppIds($new.packages) | if length > 0 then .[] else empty end

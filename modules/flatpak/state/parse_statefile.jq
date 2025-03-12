@@ -9,7 +9,7 @@
 # Managed is loaded from config and previous state files;
 # Unmanaged is generated at runtime by quering the flatpak
 # installation.
-# See modules/flatpak/install.nix for details.
+# See modules/flatpak/install.nix for details
 
 # Check format of existing packages
 def isNewFormat:
@@ -19,7 +19,7 @@ def isNewFormat:
   end;
 
 # Extract a remote attrSet from a list
-# of currently installed remotes ($managed_remotes)
+# of all currently installed remotes ($installed_remotes)
 def extractRemoteAttrs:
   (split("\n") | map(select(length > 0) | split("\t")) |
     map({
@@ -43,7 +43,7 @@ if ($old | isNewFormat) then
     # Already in new format. Keep state as is.
     $old + {
       "packages": extractPackageAttrs($old.packages; $installed_packages),
-      "remotes": ($managed_remotes | extractRemoteAttrs)
+      "remotes": ($installed_remotes | extractRemoteAttrs)
     }
 else
     # Old format, convert while adding new keys
@@ -56,6 +56,6 @@ else
         }));
         $installed_packages
       ),
-      "remotes": ($managed_remotes | extractRemoteAttrs)
+      "remotes": ($installed_remotes | extractRemoteAttrs)
     }
 end
