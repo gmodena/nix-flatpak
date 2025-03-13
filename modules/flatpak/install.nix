@@ -11,7 +11,9 @@ let
     { }
     (builtins.filter (package: utils.isFlatpakref package) cfg.packages);
 
-  formatVersion = "1.0.0";
+  # We use an incremental versioning scheme for the state file. For internal use only.
+  formatVersion = 1;
+
   # Put the state file in the `gcroots` folder of the respective installation,
   # which prevents it from being garbage collected. This could probably be
   # improved in the future if there are better conventions for how this should
@@ -36,7 +38,7 @@ let
     else "\${XDG_STATE_HOME:-$HOME/.local/state}/home-manager/gcroots";
 
   stateFile = pkgs.writeText "flatpak-state.json" (builtins.toJSON {
-    version = "v${formatVersion}";
+    version = formatVersion;
     packages = map
       (package:
         let
