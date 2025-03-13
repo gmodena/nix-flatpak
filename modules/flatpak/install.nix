@@ -44,10 +44,13 @@ let
             if utils.isFlatpakref package
             then flatpakrefCache.${(utils.sanitizeUrl package.flatpakref)}.Name
             else package.appId;
+          origin = if utils.isFlatpakref package
+            then utils.getRemoteNameFromFlatpakref null flatpakrefCache.${utils.sanitizeUrl package.flatpakref}
+            else package.origin;
         in
         {
           appId = appId;
-          origin = package.origin or null;
+          origin = origin;
           flatpakref = package.flatpakref or null;
           commit = package.commit or null;
         })
