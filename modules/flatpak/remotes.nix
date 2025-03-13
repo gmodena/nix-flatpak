@@ -28,7 +28,7 @@ let
     ${pkgs.jq}/bin/jq -r -n \
       --argjson old "$OLD_STATE" \
       --argjson new "$NEW_STATE" \
-       '(($old.remotes // []) - ($new.remotes // []))[]' \
+       '(($old.remotes // []) - ($new.remotes // [])).[].name' \
       | while read -r REMOTE_NAME; do
           if ${pkgs.flatpak}/bin/flatpak --${installation} remotes --columns=name | grep -q "^$REMOTE_NAME$"; then
             ${pkgs.flatpak}/bin/flatpak remote-delete ${if uninstallUnmanaged then " --force " else " " } --${installation} $REMOTE_NAME

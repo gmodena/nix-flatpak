@@ -11,21 +11,8 @@ let
     { }
     (builtins.filter (package: utils.isFlatpakref package) cfg.packages);
 
-  # Get the appId and origin from a flatpakref file or URL to pass to flatpak commands.
-  # As of 2024-10 Flatpak will fail to reinstall from flatpakref URL (https://github.com/flatpak/flatpak/issues/5460).
-  # This function will return the appId if the package is already installed, otherwise it will return the flatpakref URL.
-  installOrUpdateFromFlatpakref = flatpakrefUrl: installation:
-    let
-      appId = flatpakrefCache.${(utils.sanitizeUrl flatpakrefUrl)}.Name;
-      origin = utils.getRemoteNameFromFlatpakref null flatpakrefCache.${(utils.sanitizeUrl flatpakrefUrl)};
-    in
-    ''
-      $(if ${pkgs.flatpak}/bin/flatpak --${installation} list --app --columns=application | ${pkgs.gnugrep}/bin/grep -q ${appId}; then
-          echo "${origin} ${appId}"
-      else
-          echo "--from ${flatpakrefUrl}"
-      fi)
-    '';
+  # We use an incremental versioning scheme for the state file. For internal use only.
+  formatVersion = 1;
 
   # Put the state file in the `gcroots` folder of the respective installation,
   # which prevents it from being garbage collected. This could probably be
@@ -51,29 +38,66 @@ let
     else "\${XDG_STATE_HOME:-$HOME/.local/state}/home-manager/gcroots";
 
   stateFile = pkgs.writeText "flatpak-state.json" (builtins.toJSON {
-    packages = (map
+    version = formatVersion;
+    packages = map
       (package:
-        if utils.isFlatpakref package
-        then flatpakrefCache.${(utils.sanitizeUrl package.flatpakref)}.Name # application id from flatpakref
-        else package.appId
-      )
-      cfg.packages);
+        let
+          appId =
+            if utils.isFlatpakref package
+            then flatpakrefCache.${(utils.sanitizeUrl package.flatpakref)}.Name
+            else package.appId;
+          origin = if utils.isFlatpakref package
+            then utils.getRemoteNameFromFlatpakref null flatpakrefCache.${utils.sanitizeUrl package.flatpakref}
+            else package.origin;
+        in
+        {
+          appId = appId;
+          origin = origin;
+          flatpakref = package.flatpakref or null;
+          commit = package.commit or null;
+        })
+      cfg.packages;
     overrides = cfg.overrides;
     # Iterate over remotes and handle remotes installed from flatpakref URLs
     remotes =
       # Existing remotes (not from flatpakref)
-      (map (builtins.getAttr "name") cfg.remotes)
+      (map
+        (remote:
+          let name = remote.name;
+          in { name = name; }
+        )
+        cfg.remotes)
       ++
       # Add remotes extracted from flatpakref URLs in packages.
-      # flatpakref remote names will override any origin set in the package.
-      (builtins.filter (remote: !builtins.isNull remote)
-        (map
-          (package:
-            utils.getRemoteNameFromFlatpakref null flatpakrefCache.${(utils.sanitizeUrl package.flatpakref)})
-          (builtins.filter (package: utils.isFlatpakref package) cfg.packages)));
+      (map
+        (remote:
+          { name = remote; }
+        )
+        (builtins.filter (remote: !builtins.isNull remote)
+          (map
+            (package:
+              utils.getRemoteNameFromFlatpakref null flatpakrefCache.${utils.sanitizeUrl package.flatpakref}
+            )
+            (builtins.filter (package: utils.isFlatpakref package) cfg.packages))));
   });
 
   statePath = "${gcroots}/${stateFile.name}";
+
+  # Get the appId and origin from a flatpakref file or URL to pass to flatpak commands.
+  # As of 2024-10 Flatpak will fail to reinstall from flatpakref URL (https://github.com/flatpak/flatpak/issues/5460).
+  # This function will return the appId if the package is already installed, otherwise it will return the flatpakref URL.
+  installOrUpdateFromFlatpakref = flatpakrefUrl: installation:
+    let
+      appId = flatpakrefCache.${(utils.sanitizeUrl flatpakrefUrl)}.Name;
+      origin = utils.getRemoteNameFromFlatpakref null flatpakrefCache.${(utils.sanitizeUrl flatpakrefUrl)};
+    in
+    ''
+      $(if ${pkgs.flatpak}/bin/flatpak --${installation} list --app --columns=application | ${pkgs.gnugrep}/bin/grep -q ${appId}; then
+          echo "${origin} ${appId}"
+      else
+          echo "--from ${flatpakrefUrl}"
+      fi)
+    '';
 
   # This script is used to manage the lifecyle of all flatpaks (remotes, packages)
   # installed on the system.
@@ -82,38 +106,32 @@ let
   handleUnmanagedStateCmd = installation: uninstallUnmanagedState:
     lib.optionalString uninstallUnmanagedState ''
       # Add all installed Flatpak packages to the old state, so only the managed ones (new state) will be kept
-      INSTALLED_PACKAGES=$(${pkgs.flatpak}/bin/flatpak --${installation} list --app --columns=application)
+      INSTALLED_PACKAGES=$(${pkgs.flatpak}/bin/flatpak --${installation} list --app --columns=application,origin,active)
+
+      # Add all installed remotes to the old state, so that only managed (= declared in nix-flatpak's config)
+      # ones will be kept across generations.
+      INSTALLED_REMOTES=$(${pkgs.flatpak}/bin/flatpak --${installation} remotes --columns=name)
+      
+      # Add unmanaged packages and remotes to old state.
       OLD_STATE=$(${pkgs.jq}/bin/jq -r -n \
         --argjson old "$OLD_STATE" \
         --arg installed_packages "$INSTALLED_PACKAGES" \
-        '$old + { "packages" : $installed_packages | split("\n") }')
-
-      # Add all configured remote to the old state, so that only managed ones will be kept across generations.
-      MANAGED_REMOTES=$(${pkgs.flatpak}/bin/flatpak --${installation} remotes --columns=name)
-
-      OLD_STATE=$(${pkgs.jq}/bin/jq -r -n \
-        --argjson old "$OLD_STATE" \
-        --arg managed_remotes "$MANAGED_REMOTES" \
-        '$old + { "remotes": $managed_remotes | split("\n") }')
-
+        --arg installed_remotes "$INSTALLED_REMOTES" \
+        --from-file ${./state/parse_statefile.jq})
     '';
 
   flatpakUninstallCmd = installation: {}: ''
     # Uninstall all packages that are present in the old state but not the new one
     # $OLD_STATE and $NEW_STATE are globals, declared in the output of pkgs.writeShellScript.
-    ${pkgs.jq}/bin/jq -r -n \
-      --argjson old "$OLD_STATE" \
-      --argjson new "$NEW_STATE" \
-      '(($old.packages // []) - ($new.packages // []))[]' \
-    | while read -r APP_ID; do
-        # Guard against cases where a user removes an application both manually and through
-        # configuration between activations. This code path triggers when uninstallUnmanaged=false
-        # and nix-flatpak fails to clean up inconsistencies before reaching the uninstall phase.
-        if ${pkgs.flatpak}/bin/flatpak --${installation} list --app --columns=application | ${pkgs.gnugrep}/bin/grep -q "^$APP_ID$"; then
-          ${pkgs.flatpak}/bin/flatpak uninstall --${installation} -y $APP_ID
-        else
-          echo "WARNING: failed to uninstall '$APP_ID'. '$APP_ID' found in OLD_STATE, but not in '${installation}' installation. nix-flatpak state might be inconsistent."
-        fi
+    ${pkgs.jq}/bin/jq -r -n --argjson old "$OLD_STATE" --argjson new "$NEW_STATE" --from-file ${./state/diff_packages.jq} | while read -r APP_ID; do
+      # Guard against cases where a user removes an application both manually and through
+      # configuration between activations. This code path triggers when uninstallUnmanaged=false
+      # and nix-flatpak fails to clean up inconsistencies before reaching the uninstall phase.
+      if ${pkgs.flatpak}/bin/flatpak --${installation} list --app --columns=application | ${pkgs.gnugrep}/bin/grep -q "^$APP_ID$"; then
+        ${pkgs.flatpak}/bin/flatpak uninstall --${installation} -y $APP_ID
+      else
+        echo "WARNING: failed to uninstall '$APP_ID'. '$APP_ID' found in OLD_STATE, but not in '${installation}' installation. nix-flatpak state might be inconsistent."
+      fi
     done
   '';
 
@@ -151,7 +169,7 @@ let
             --argjson active "$ACTIVE" \
             --argjson old_state "$OLD_STATE" \
             --argjson new_state "$NEW_STATE" \
-            --from-file ${./overrides.jq} \
+            --from-file ${./state/overrides.jq} \
             >$OVERRIDES_PATH
         done
   '';
@@ -193,17 +211,19 @@ let
       # Check if we need to execute flatpak install .... Which is when the state has changed:
       # 1. the script needs to run with --or-update (update.onActivation and/or update.auto are enabled).
       # 2. the application is not present in OLD_STATE and should be installed.
-      # 3. the application is present in OLD_STATE, but is now pinned (explicitely)
-      #   at a different hash than the currently installed one.
+      # 3. the application is present in OLD_STATE, but is now pinned (explicitly)
+      # at a different hash than the currently installed one.
       determineFlatpakStateChange =
         let
           safeCommit = if commit == null then "" else commit;
         in
         ''
-          if ${pkgs.jq}/bin/jq -r -n --argjson old "$OLD_STATE" --arg appId "${resolvedAppId}" '$old.packages | index($appId) != null' | ${pkgs.gnugrep}/bin/grep -q true; then
+          # Check if app exists in old state, handling both formats
+          if $( ${pkgs.jq}/bin/jq -r -n --argjson old "$OLD_STATE" --arg appId "${resolvedAppId}" --from-file ${./state/app_exists.jq} | ${pkgs.gnugrep}/bin/grep -q true ); then
+            # App exists in old state, check if commit changed
             if [[ -n "${safeCommit}" ]] && [[ "$( ${pkgs.flatpak}/bin/flatpak --${installation} info "${resolvedAppId}" --show-commit 2>/dev/null )" != "${safeCommit}" ]]; then
               ${updatePinnedCmd}
-              : # No operation if no update command needs to run.
+              : # No operation if no install command needs to run.
             fi
           else
             ${installAndUpdatePinnedCmd}
