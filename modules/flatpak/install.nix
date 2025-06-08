@@ -55,6 +55,8 @@ let
           origin = origin;
           flatpakref = package.flatpakref or null;
           commit = package.commit or null;
+          bundle = package.bundle;
+          sha256 = package.sha256;
         })
       cfg.packages;
     overrides = cfg.overrides;
@@ -97,6 +99,17 @@ let
       else
           echo "--from ${flatpakrefUrl}"
       fi)
+    '';
+
+  # Install or update a flatpak bundle.
+  installOrUpdateFromBundle = path: appId: oldSha256: newSha256:
+    let
+      path = path;
+      appId = appId;
+      needsUpdate = oldSha256 != newSha256;
+    in
+    ''
+      ${appId}
     '';
 
   # This script is used to manage the lifecyle of all flatpaks (remotes, packages)
@@ -174,65 +187,90 @@ let
         done
   '';
 
-  flatpakInstallCmd = installation: update: { appId, origin ? "flathub", commit ? null, flatpakref ? null, ... }:
-    let
-      cmdBuilder = installation: action: args:
-        "${pkgs.flatpak}/bin/flatpak --${installation} --noninteractive ${action} ${args}";
+  flatpakInstallCmd = installation: update: { appId, origin ? "flathub", commit ? null, flatpakref ? null, bundle ? null, sha256 ? null, ... }:
+      let
+        isBundle = bundle != null;
 
-      installCmdBuilder = installation: update: appId: flatpakref: origin:
-        let
-          updateFlag = if update then "--or-update" else "";
-          sourceArgs =
-            if utils.isFlatpakref { flatpakref = flatpakref; }
-            then installOrUpdateFromFlatpakref flatpakref installation
-            else "${origin} ${appId}";
-        in
-        cmdBuilder installation "install" "${updateFlag} ${sourceArgs}";
+        cmdBuilder = installation: action: args:
+          "${pkgs.flatpak}/bin/flatpak --${installation} --noninteractive ${action} ${args}";
 
-      resolvedAppId =
-        if flatpakref != null
-        then flatpakrefCache.${(utils.sanitizeUrl flatpakref)}.Name
-        else appId;
+        installCmdBuilder = installation: update: appId: flatpakref: origin:
+          let
+ 
+            updateFlag = if update then "--or-update" else "";
+            # Different format require to specify different sourceArgs
+            sourceArgs =
+              if utils.isFlatpakref { flatpakref = flatpakref; }
+              then installOrUpdateFromFlatpakref flatpakref installation
+              else "${origin} ${appId}";
+          in
+            cmdBuilder installation "install" "${updateFlag} ${sourceArgs}";
 
-      # flatpak install ...
-      installCmd = installCmdBuilder installation update appId flatpakref origin;
 
-      # flatpak update ...
-      updatePinnedCmd =
-        if commit != null
-        then cmdBuilder installation "update" "--commit=\"${commit}\" ${resolvedAppId}"
-        else "";
+        resolvedAppId =
+          if flatpakref != null
+          then flatpakrefCache.${(utils.sanitizeUrl flatpakref)}.Name
+          else appId;
 
-      installAndUpdatePinnedCmd = ''
-        ${if installCmd != null then installCmd else ""}
-        ${if updatePinnedCmd != null then updatePinnedCmd else ""}
-      '';
+        # flatpak install ...
+        installCmd = if isBundle then null else installCmdBuilder installation update appId flatpakref origin;
+        # Bundle specific code paths
+        installBundleCmd = if isBundle then cmdBuilder installation "install" "--bundle ${bundle}" else null;
 
-      # Check if we need to execute flatpak install .... Which is when the state has changed:
-      # 1. the script needs to run with --or-update (update.onActivation and/or update.auto are enabled).
-      # 2. the application is not present in OLD_STATE and should be installed.
-      # 3. the application is present in OLD_STATE, but is now pinned (explicitly)
-      # at a different hash than the currently installed one.
-      determineFlatpakStateChange =
-        let
-          safeCommit = if commit == null then "" else commit;
-        in
-        ''
-          # Check if app exists in old state, handling both formats
-          if $( ${pkgs.jq}/bin/jq -r -n --argjson old "$OLD_STATE" --arg appId "${resolvedAppId}" --from-file ${./state/app_exists.jq} | ${pkgs.gnugrep}/bin/grep -q true ); then
-            # App exists in old state, check if commit changed
-            if [[ -n "${safeCommit}" ]] && [[ "$( ${pkgs.flatpak}/bin/flatpak --${installation} info "${resolvedAppId}" --show-commit 2>/dev/null )" != "${safeCommit}" ]]; then
-              ${updatePinnedCmd}
-              : # No operation if no install command needs to run.
-            fi
-          else
-            ${installAndUpdatePinnedCmd}
-            : # No operation if no install command needs to run.
-          fi
+        # flatpak update ...
+        updatePinnedCmd =
+          if commit != null
+          then cmdBuilder installation "update" "--commit=\"${commit}\" ${resolvedAppId}"
+          else "";
+
+        installAndUpdatePinnedCmd = ''
+          ${if installCmd != null then installCmd else ""}
+          ${if updatePinnedCmd != null then updatePinnedCmd else ""}
         '';
-    in
-    if update then installAndUpdatePinnedCmd else determineFlatpakStateChange;
 
+        # Check if we need to execute flatpak install .... Which is when the state has changed:
+        # 1. the script needs to run with --or-update (update.onActivation and/or update.auto are enabled).
+        # 2. the application is not present in OLD_STATE and should be installed.
+        # 3. the application is present in OLD_STATE, but is now pinned (explicitly)
+        # at a different hash than the currently installed one.
+        determineFlatpakStateChange =
+          let
+            safeCommit = if commit == null then "" else commit;
+          in
+          ''
+            if ${if isBundle then "true" else "false"}; then
+                # Check if sha256 changed between OLD_STATE and NEW_STATE
+                changedSha256="$(${pkgs.jq}/bin/jq -ns \
+                  --argjson oldState "$OLD_STATE" \
+                  --argjson newState "$NEW_STATE" \
+                  --arg appId "${resolvedAppId}" \
+                  -f ${./state/compare_sha.jq})"
+
+                if [[ -n "$changedSha256" ]]; then
+                  if ${pkgs.flatpak}/bin/flatpak --${installation} info "${resolvedAppId}" &>/dev/null; then
+                    ${pkgs.flatpak}/bin/flatpak --${installation} uninstall -y "${resolvedAppId}"
+                    : # No operation if no install command needs to run.
+                  fi
+                  ${if isBundle then installBundleCmd else ""}
+                  : # No operation if no install command needs to run.
+                fi
+            else
+              # Check if app exists in old state, handling both formats
+              if $( ${pkgs.jq}/bin/jq -r -n --argjson old "$OLD_STATE" --arg appId "${resolvedAppId}" --from-file ${./state/app_exists.jq} | ${pkgs.gnugrep}/bin/grep -q true ); then
+                # App exists in old state, check if commit changed
+                if [[ -n "${safeCommit}" ]] && [[ "$( ${pkgs.flatpak}/bin/flatpak --${installation} info "${resolvedAppId}" --show-commit 2>/dev/null )" != "${safeCommit}" ]]; then
+                  ${updatePinnedCmd}
+                  : # No operation if no install command needs to run.
+                fi
+              else
+                ${installAndUpdatePinnedCmd}
+                : # No operation if no install command needs to run.
+              fi
+            fi
+          '';
+      in
+      if update then installAndUpdatePinnedCmd
+      else determineFlatpakStateChange;
 
 
   flatpakInstall = installation: update: packages: map (flatpakInstallCmd installation update) packages;

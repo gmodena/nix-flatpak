@@ -56,6 +56,15 @@ let
         description = "The sha256 hash of the URI to install. ";
         default = null;
       };
+
+      bundle = mkOption {
+        type = types.nullOr types.str;
+        description = ''
+            Path to a local Flatpak bundle to install. The file name should follow Flatpak's conventions:
+            https://docs.flatpak.org/en/latest/conventions.html
+          '';
+        default = null;
+      };
     };
   };
 
