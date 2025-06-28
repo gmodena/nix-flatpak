@@ -215,6 +215,22 @@ in
     '';
   };
 
+  overridesFiles = mkOption {
+    type = with types; listOf str;
+    default = [ ];
+    description = ''
+      A list of paths to Flatpak overrides files.
+      The files will be merged with the overrides attribute set.
+      The files are expected to be in the same format as the overrides attribute set.
+    '';
+    example = literalExpression ''
+      [
+        "./overrides.d/com.visualstudio.code"
+        "./overrides.d/org.gnome.Terminal"
+      ];
+    '';
+  };
+
   update = mkOption {
     type = with types; submodule updateOptions;
     default = { onActivation = false; auto = { enable = false; onCalendar = "weekly"; }; };
