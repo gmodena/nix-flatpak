@@ -269,8 +269,7 @@ let
             fi
           '';
       in
-      if update then installAndUpdatePinnedCmd
-      else determineFlatpakStateChange;
+      determineFlatpakStateChange;
 
 
   flatpakInstall = installation: update: packages: map (flatpakInstallCmd installation update) packages;
