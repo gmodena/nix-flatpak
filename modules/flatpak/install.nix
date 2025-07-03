@@ -12,7 +12,7 @@ let
     (builtins.filter (package: utils.isFlatpakref package) cfg.packages);
 
   # We use an incremental versioning scheme for the state file. For internal use only.
-  formatVersion = 1;
+  formatVersion = 2;
 
   # Put the state file in the `gcroots` folder of the respective installation,
   # which prevents it from being garbage collected. This could probably be
@@ -25,10 +25,14 @@ let
   # {
   #   "packages": ["org.gnome.Epiphany", "org.gnome.Epiphany.Devel"],
   #   "overrides": {
-  #     "org.gnome.Epiphany": {
-  #       "command": "env MOZ_ENABLE_WAYLAND=1 /run/current-system/sw/bin/epiphany",
-  #       "env": "MOZ_ENABLE_WAYLAND=1"
-  #     }
+  #      "settings": {
+  #         "org.gnome.Epiphany": {
+  #           "command": "env MOZ_ENABLE_WAYLAND=1 /run/current-system/sw/bin/epiphany",
+  #           "env": "MOZ_ENABLE_WAYLAND=1"
+  #         },
+  #       },
+  #      "files": [],
+  #      "settingsFiles": []
   #   },
   #   "remotes": ["flathub", "gnome-nightly"]
   # }
@@ -157,35 +161,59 @@ let
     then "/var/lib/flatpak/overrides"
     else "\${XDG_DATA_HOME:-$HOME/.local/share}/flatpak/overrides";
 
+  overrideFiles = builtins.listToAttrs (
+    builtins.map (path: {
+      name = builtins.baseNameOf path; 
+      value = path;                     
+    }) cfg.overrides.files
+  );
+
   flatpakOverridesCmd = installation: {}: ''
     # Update overrides that are managed by this module (both old and new)
     ${pkgs.coreutils}/bin/mkdir -p ${overridesDir}
     ${pkgs.jq}/bin/jq -r -n \
       --argjson old "$OLD_STATE" \
       --argjson new "$NEW_STATE" \
-      '$new.overrides + $old.overrides | keys[]' \
+      --argjson override_files '${builtins.toJSON overrideFiles}' \
+      '[(((try $new.overrides.settings catch $new.overrides) + (try $old.overrides.settings catch $old.overrides) | keys[]), ($override_files | keys[]))] | unique[]' \
       | while read -r APP_ID; do
-          OVERRIDES_PATH=${overridesDir}/$APP_ID
+        OVERRIDES_PATH=${overridesDir}/$APP_ID
 
-          # Transform the INI-like Flatpak overrides file into a workable JSON
-          if [[ -f $OVERRIDES_PATH ]]; then
-            ACTIVE=$(${pkgs.coreutils}/bin/cat $OVERRIDES_PATH \
-              | ${pkgs.jc}/bin/jc --ini \
-              | ${pkgs.jq}/bin/jq 'map_values(map_values(split(";") | select(. != []) // ""))')
-          else
-            ACTIVE={}
-          fi
+        # Get the corresponding file from overrideFiles list (if it exists)
+        OVERRIDE_FILE=$(${pkgs.jq}/bin/jq -r -n \
+          --arg app_id "$APP_ID" \
+          --argjson override_files '${builtins.toJSON  overrideFiles}' \
+          '$override_files[$app_id] // empty')
 
-          # Generate and save the updated overrides file
-          ${pkgs.jq}/bin/jq -r -n \
-            --arg app_id "$APP_ID" \
-            --argjson active "$ACTIVE" \
-            --argjson old_state "$OLD_STATE" \
-            --argjson new_state "$NEW_STATE" \
-            --from-file ${./state/overrides.jq} \
-            >$OVERRIDES_PATH
-        done
-  '';
+        # Read the base file from overrideFiles and convert to JSON (if file exists)
+        if [[ -n "$OVERRIDE_FILE" && -f "$OVERRIDE_FILE" ]]; then
+          BASE_OVERRIDES=$(${pkgs.coreutils}/bin/cat "$OVERRIDE_FILE" \
+            | ${pkgs.jc}/bin/jc --ini \
+            | ${pkgs.jq}/bin/jq 'map_values(map_values(split(";") | select(. != []) // ""))')
+        else
+          BASE_OVERRIDES={}
+        fi
+        
+        # Read existing active overrides if they exist
+        if [[ -f $OVERRIDES_PATH ]]; then
+          ACTIVE=$(${pkgs.coreutils}/bin/cat $OVERRIDES_PATH \
+            | ${pkgs.jc}/bin/jc --ini \
+            | ${pkgs.jq}/bin/jq 'map_values(map_values(split(";") | select(. != []) // ""))')
+        else
+          ACTIVE={}
+        fi
+        
+        # Generate and save the updated overrides file
+        ${pkgs.jq}/bin/jq -r -n \
+          --arg app_id "$APP_ID" \
+          --argjson base_overrides "$BASE_OVERRIDES" \
+          --argjson active "$ACTIVE" \
+          --argjson old_state "$OLD_STATE" \
+          --argjson new_state "$NEW_STATE" \
+          --from-file ${./state/overrides.jq} \
+          >$OVERRIDES_PATH
+      done
+    '';
 
   flatpakInstallCmd = installation: update: { appId, origin ? "flathub", commit ? null, flatpakref ? null, bundle ? null, sha256 ? null, ... }:
       let
