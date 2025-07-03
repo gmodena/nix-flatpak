@@ -39,8 +39,8 @@ def values($value):
   end;
 
 # Extract state aliases for the current app
-($old_state.overrides[$app_id] // {}) as $old
-| ($new_state.overrides[$app_id] // {}) as $new
+(try $old_state.overrides.settings[$app_id] catch $old_state.overrides[$app_id]) as $old
+| (try $new_state.overrides.settings[$app_id] catch $new_state.overrides) as $new
 # Process all sections that exist in base, active, or new state
 | $base_overrides + $active + $new
 | keys
