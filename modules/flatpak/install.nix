@@ -161,7 +161,7 @@ let
     builtins.map (path: {
       name = builtins.baseNameOf path; 
       value = path;                     
-    }) cfg.overridesFiles
+    }) cfg.overrides.files
   );
 
   flatpakOverridesCmd = installation: {}: ''
@@ -171,7 +171,7 @@ let
       --argjson old "$OLD_STATE" \
       --argjson new "$NEW_STATE" \
       --argjson override_files '${builtins.toJSON overrideFiles}' \
-      '[(($new.overrides + $old.overrides | keys[]), ($override_files | keys[]))] | unique[]' \
+      '[(((try $new.overrides.settings catch $new.overrides) + (try $old.overrides.settings catch $old.overrides) | keys[]), ($override_files | keys[]))] | unique[]' \
       | while read -r APP_ID; do
         OVERRIDES_PATH=${overridesDir}/$APP_ID
 

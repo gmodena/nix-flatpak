@@ -40,8 +40,8 @@ runTests {
   testNoChanges = {
     expr = runJqScript {
       appId = "com.example.app";
-      oldState = builtins.toJSON { overrides = { "com.example.app" = { "Context" = { "shared" = "network"; }; }; }; };
-      newState = builtins.toJSON { overrides = { "com.example.app" = { "Context" = { "shared" = "network"; }; }; }; };
+      oldState = builtins.toJSON { overrides.settings = { "com.example.app" = { "Context" = { "shared" = "network"; }; }; }; };
+      newState = builtins.toJSON { overrides.settings = { "com.example.app" = { "Context" = { "shared" = "network"; }; }; }; };
       activeState = builtins.toJSON { "Context" = { "shared" = "network"; }; };
     };
     expected = "[Context]\nshared=network\n\n";
@@ -50,8 +50,8 @@ runTests {
   testNewOverrideAdded = {
     expr = runJqScript {
       appId = "com.example.app";
-      oldState = builtins.toJSON { overrides = { "com.example.app" = {}; }; };
-      newState = builtins.toJSON { overrides = { "com.example.app" = { "Context" = { "shared" = "network"; }; }; }; };
+      oldState = builtins.toJSON { overrides.settings = { "com.example.app" = {}; }; };
+      newState = builtins.toJSON { overrides.settings = { "com.example.app" = { "Context" = { "shared" = "network"; }; }; }; };
       activeState = builtins.toJSON { };
     };
     expected = "[Context]\nshared=network\n\n";
@@ -60,8 +60,8 @@ runTests {
   testOverrideRemoved = {
     expr = runJqScript {
       appId = "com.example.app";
-      oldState = builtins.toJSON { overrides = { "com.example.app" = { "Context" = { "shared" = "network"; }; }; }; };
-      newState = builtins.toJSON { overrides = { "com.example.app" = {}; }; };
+      oldState = builtins.toJSON { overrides.settings = { "com.example.app" = { "Context" = { "shared" = "network"; }; }; }; };
+      newState = builtins.toJSON { overrides.settings = { "com.example.app" = {}; }; };
       activeState = builtins.toJSON { "Context" = { "shared" = "network"; }; };
     };
     expected = "";
@@ -70,8 +70,8 @@ runTests {
   testOverrideUpdated = {
     expr = runJqScript {
       appId = "com.example.app";
-      oldState = builtins.toJSON { overrides = { "com.example.app" = { "Context" = { "shared" = "network"; }; }; }; };
-      newState = builtins.toJSON { overrides = { "com.example.app" = { "Context" = { "shared" = "ipc"; }; }; }; };
+      oldState = builtins.toJSON { overrides.settings = { "com.example.app" = { "Context" = { "shared" = "network"; }; }; }; };
+      newState = builtins.toJSON { overrides.settings = { "com.example.app" = { "Context" = { "shared" = "ipc"; }; }; }; };
       activeState = builtins.toJSON { "Context" = { "shared" = "network"; }; };
     };
     expected = "[Context]\nshared=ipc\n\n";
@@ -80,8 +80,8 @@ runTests {
   testMultipleSections = {
     expr = runJqScript {
       appId = "com.example.app";
-      oldState = builtins.toJSON { overrides = { "com.example.app" = { "Context" = { "shared" = "network"; }; }; }; };
-      newState = builtins.toJSON { overrides = { "com.example.app" = { "Context" = { "shared" = "network;ipc"; }; "Permissions" = { "devices" = "all"; }; }; }; };
+      oldState = builtins.toJSON { overrides.settings = { "com.example.app" = { "Context" = { "shared" = "network"; }; }; }; };
+      newState = builtins.toJSON { overrides.settings = { "com.example.app" = { "Context" = { "shared" = "network;ipc"; }; "Permissions" = { "devices" = "all"; }; }; }; };
       activeState = builtins.toJSON { "Context" = { "shared" = "network"; }; };
     };
     expected = "[Context]\nshared=network;ipc\n\n[Permissions]\ndevices=all\n\n";
@@ -91,8 +91,8 @@ runTests {
   testBaseOverridesOnly = {
     expr = runJqScript {
       appId = "com.example.app";
-      oldState = builtins.toJSON { overrides = {}; };
-      newState = builtins.toJSON { overrides = {}; };
+      oldState = builtins.toJSON { overrides.settings = {}; };
+      newState = builtins.toJSON { overrides.settings = {}; };
       activeState = builtins.toJSON { };
       baseOverrides = builtins.toJSON { "Context" = { "shared" = "network"; "devices" = "dri"; }; };
     };
@@ -102,8 +102,8 @@ runTests {
   testBaseOverridesWithStateChanges = {
     expr = runJqScript {
       appId = "com.example.app";
-      oldState = builtins.toJSON { overrides = {}; };
-      newState = builtins.toJSON { overrides = { "com.example.app" = { "Context" = { "shared" = "ipc"; }; "Permissions" = { "filesystems" = "home"; }; }; }; };
+      oldState = builtins.toJSON { overrides.settings = {}; };
+      newState = builtins.toJSON { overrides.settings = { "com.example.app" = { "Context" = { "shared" = "ipc"; }; "Permissions" = { "filesystems" = "home"; }; }; }; };
       activeState = builtins.toJSON { };
       baseOverrides = builtins.toJSON { "Context" = { "shared" = "network"; "devices" = "dri"; }; };
     };
@@ -113,8 +113,8 @@ runTests {
   testBaseOverridesWithArrayMerging = {
     expr = runJqScript {
       appId = "com.example.app";
-      oldState = builtins.toJSON { overrides = {}; };
-      newState = builtins.toJSON { overrides = { "com.example.app" = { "Context" = { "shared" = [ "ipc" ]; }; }; }; };
+      oldState = builtins.toJSON { overrides.settings = {}; };
+      newState = builtins.toJSON { overrides.settings = { "com.example.app" = { "Context" = { "shared" = [ "ipc" ]; }; }; }; };
       activeState = builtins.toJSON { };
       baseOverrides = builtins.toJSON { "Context" = { "shared" = [ "network" ]; "devices" = [ "dri" ]; }; };
     };
@@ -124,8 +124,8 @@ runTests {
   testBaseOverridesWithOldStateRemoval = {
     expr = runJqScript {
       appId = "com.example.app";
-      oldState = builtins.toJSON { overrides = { "com.example.app" = { "Context" = { "shared" = "ipc"; }; }; }; };
-      newState = builtins.toJSON { overrides = { "com.example.app" = { "Context" = { "shared" = "x11"; }; }; }; };
+      oldState = builtins.toJSON { overrides.settings = { "com.example.app" = { "Context" = { "shared" = "ipc"; }; }; }; };
+      newState = builtins.toJSON { overrides.settings = { "com.example.app" = { "Context" = { "shared" = "x11"; }; }; }; };
       activeState = builtins.toJSON { "Context" = { "shared" = [ "network" "ipc" ]; }; };
       baseOverrides = builtins.toJSON { "Context" = { "shared" = [ "network" ]; "devices" = [ "dri" ]; }; };
     };
@@ -135,8 +135,8 @@ runTests {
   testBaseOverridesOverriddenByState = {
     expr = runJqScript {
       appId = "com.example.app";
-      oldState = builtins.toJSON { overrides = {}; };
-      newState = builtins.toJSON { overrides = { "com.example.app" = { "Context" = { "shared" = "x11"; }; }; }; };
+      oldState = builtins.toJSON { overrides.settings = {}; };
+      newState = builtins.toJSON { overrides.settings = { "com.example.app" = { "Context" = { "shared" = "x11"; }; }; }; };
       activeState = builtins.toJSON { };
       baseOverrides = builtins.toJSON { "Context" = { "shared" = "network"; "devices" = "dri"; }; };
     };
@@ -146,8 +146,8 @@ runTests {
   testComplexMergeScenario = {
     expr = runJqScript {
       appId = "com.example.app";
-      oldState = builtins.toJSON { overrides = { "com.example.app" = { "Context" = { "shared" = [ "network" ]; }; "Permissions" = { "devices" = "all"; }; }; }; };
-      newState = builtins.toJSON { overrides = { "com.example.app" = { "Context" = { "shared" = [ "ipc" "x11" ]; }; "Environment" = { "LANG" = "en_US.UTF-8"; }; }; }; };
+      oldState = builtins.toJSON { overrides.settings = { "com.example.app" = { "Context" = { "shared" = [ "network" ]; }; "Permissions" = { "devices" = "all"; }; }; }; };
+      newState = builtins.toJSON { overrides.settings = { "com.example.app" = { "Context" = { "shared" = [ "ipc" "x11" ]; }; "Environment" = { "LANG" = "en_US.UTF-8"; }; }; }; };
       activeState = builtins.toJSON { "Context" = { "shared" = [ "network" "pulseaudio" ]; }; "Permissions" = { "devices" = "all"; }; };
       baseOverrides = builtins.toJSON { "Context" = { "shared" = [ "pulseaudio" ]; "devices" = [ "dri" ]; }; "Permissions" = { "filesystems" = "home"; }; };
     };
@@ -157,8 +157,8 @@ runTests {
   testEmptyBaseOverrides = {
     expr = runJqScript {
       appId = "com.example.app";
-      oldState = builtins.toJSON { overrides = {}; };
-      newState = builtins.toJSON { overrides = { "com.example.app" = { "Context" = { "shared" = "network"; }; }; }; };
+      oldState = builtins.toJSON { overrides.settings = {}; };
+      newState = builtins.toJSON { overrides.settings = { "com.example.app" = { "Context" = { "shared" = "network"; }; }; }; };
       activeState = builtins.toJSON { };
       baseOverrides = builtins.toJSON { };
     };
@@ -168,8 +168,8 @@ runTests {
   testBaseOverridesWithEmptyState = {
     expr = runJqScript {
       appId = "com.example.app";
-      oldState = builtins.toJSON { overrides = {}; };
-      newState = builtins.toJSON { overrides = {}; };
+      oldState = builtins.toJSON { overrides.settings = {}; };
+      newState = builtins.toJSON { overrides.settings = {}; };
       activeState = builtins.toJSON { };
       baseOverrides = builtins.toJSON { "Context" = { "shared" = "network"; }; };
     };
@@ -179,8 +179,8 @@ runTests {
   testBaseOverridesWithNoChanges = {
     expr = runJqScript {
       appId = "com.example.app";
-      oldState = builtins.toJSON { overrides = { "com.example.app" = { "Context" = { "shared" = "network"; }; }; }; };
-      newState = builtins.toJSON { overrides = { "com.example.app" = { "Context" = { "shared" = "network"; }; }; }; };
+      oldState = builtins.toJSON { overrides.settings = { "com.example.app" = { "Context" = { "shared" = "network"; }; }; }; };
+      newState = builtins.toJSON { overrides.settings = { "com.example.app" = { "Context" = { "shared" = "network"; }; }; }; };
       activeState = builtins.toJSON { "Context" = { "shared" = "network"; }; };
       baseOverrides = builtins.toJSON { };
     };
@@ -190,8 +190,8 @@ runTests {
   testBaseOverridesWithMultipleApps = {
     expr = runJqScript {
       appId = "com.example.app";
-      oldState = builtins.toJSON { overrides = {}; };
-      newState = builtins.toJSON { overrides = { "com.example.app" = { "Context" = { "shared" = "network"; }; }; "com.example.otherapp" = { "Context" = { "shared" = "ipc"; }; }; }; };
+      oldState = builtins.toJSON { overrides.settings = {}; };
+      newState = builtins.toJSON { overrides.settings = { "com.example.app" = { "Context" = { "shared" = "network"; }; }; "com.example.otherapp" = { "Context" = { "shared" = "ipc"; }; }; }; };
       activeState = builtins.toJSON { };
       baseOverrides = builtins.toJSON { "Context" = { "shared" = "network"; }; };
     };
@@ -201,8 +201,8 @@ runTests {
   testBaseOverridesWithMultipleAppsAndStateChanges = {
     expr = runJqScript {
       appId = "com.example.app";
-      oldState = builtins.toJSON { overrides = {}; };
-      newState = builtins.toJSON { overrides = { "com.example.app" = { "Context" = { "shared" = "ipc"; }; }; "com.example.otherapp" = { "Context" = { "shared" = "network"; }; }; }; };
+      oldState = builtins.toJSON { overrides.settings = {}; };
+      newState = builtins.toJSON { overrides.settings = { "com.example.app" = { "Context" = { "shared" = "ipc"; }; }; "com.example.otherapp" = { "Context" = { "shared" = "network"; }; }; }; };
       activeState = builtins.toJSON { };
       baseOverrides = builtins.toJSON { "Context" = { "shared" = "network"; }; };
     };
@@ -212,8 +212,8 @@ runTests {
   testBaseOverridesWithMultipleAppsAndNoChanges = {
     expr = runJqScript {
       appId = "com.example.app";
-      oldState = builtins.toJSON { overrides = { "com.example.app" = { "Context" = { "shared" = "network"; }; }; "com.example.otherapp" = { "Context" = { "shared" = "ipc"; }; }; }; };
-      newState = builtins.toJSON { overrides = { "com.example.app" = { "Context" = { "shared" = "network"; }; }; "com.example.otherapp" = { "Context" = { "shared" = "ipc"; }; }; }; };
+      oldState = builtins.toJSON { overrides.settings = { "com.example.app" = { "Context" = { "shared" = "network"; }; }; "com.example.otherapp" = { "Context" = { "shared" = "ipc"; }; }; }; };
+      newState = builtins.toJSON { overrides.settings = { "com.example.app" = { "Context" = { "shared" = "network"; }; }; "com.example.otherapp" = { "Context" = { "shared" = "ipc"; }; }; }; };
       activeState = builtins.toJSON { };
       baseOverrides = builtins.toJSON { };
     };
