@@ -12,7 +12,7 @@ let
     (builtins.filter (package: utils.isFlatpakref package) cfg.packages);
 
   # We use an incremental versioning scheme for the state file. For internal use only.
-  formatVersion = 1;
+  formatVersion = 2;
 
   # Put the state file in the `gcroots` folder of the respective installation,
   # which prevents it from being garbage collected. This could probably be
@@ -25,10 +25,14 @@ let
   # {
   #   "packages": ["org.gnome.Epiphany", "org.gnome.Epiphany.Devel"],
   #   "overrides": {
-  #     "org.gnome.Epiphany": {
-  #       "command": "env MOZ_ENABLE_WAYLAND=1 /run/current-system/sw/bin/epiphany",
-  #       "env": "MOZ_ENABLE_WAYLAND=1"
-  #     }
+  #      "settings": {
+  #         "org.gnome.Epiphany": {
+  #           "command": "env MOZ_ENABLE_WAYLAND=1 /run/current-system/sw/bin/epiphany",
+  #           "env": "MOZ_ENABLE_WAYLAND=1"
+  #         },
+  #       },
+  #      "files": [],
+  #      "settingsFiles": []
   #   },
   #   "remotes": ["flathub", "gnome-nightly"]
   # }
