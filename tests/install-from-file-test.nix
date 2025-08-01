@@ -44,6 +44,11 @@ else
     if [[ -n "" ]] && [[ "$( ${pkgs.flatpak}/bin/flatpak --user info "noop" --show-commit 2>/dev/null )" != "" ]]; then
       
       : # No operation if no install command needs to run.
+    elif false; then
+      
+
+
+      : # No operation if no install command needs to run.
     fi
   else
     

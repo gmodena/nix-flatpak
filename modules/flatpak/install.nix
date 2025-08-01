@@ -261,6 +261,9 @@ let
                 if [[ -n "${safeCommit}" ]] && [[ "$( ${pkgs.flatpak}/bin/flatpak --${installation} info "${resolvedAppId}" --show-commit 2>/dev/null )" != "${safeCommit}" ]]; then
                   ${updatePinnedCmd}
                   : # No operation if no install command needs to run.
+                elif ${if update then "true" else "false"}; then
+                  ${installAndUpdatePinnedCmd}
+                  : # No operation if no install command needs to run.
                 fi
               else
                 ${installAndUpdatePinnedCmd}

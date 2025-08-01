@@ -49,6 +49,16 @@ else
     if [[ -n "abc123" ]] && [[ "$( ${pkgs.flatpak}/bin/flatpak --user info "org.gnome.gedit" --show-commit 2>/dev/null )" != "abc123" ]]; then
       ${pkgs.flatpak}/bin/flatpak --user --noninteractive update --commit="abc123" org.gnome.gedit
       : # No operation if no install command needs to run.
+    elif false; then
+      ${pkgs.flatpak}/bin/flatpak --user --noninteractive install  $(if ${pkgs.flatpak}/bin/flatpak --user list --app --columns=application | ${pkgs.gnugrep}/bin/grep -q org.gnome.gedit; then
+    echo "gedit-origin org.gnome.gedit"
+else
+    echo "--from ${flatpakrefUrl}"
+fi)
+
+${pkgs.flatpak}/bin/flatpak --user --noninteractive update --commit="abc123" org.gnome.gedit
+
+      : # No operation if no install command needs to run.
     fi
   else
     ${pkgs.flatpak}/bin/flatpak --user --noninteractive install  $(if ${pkgs.flatpak}/bin/flatpak --user list --app --columns=application | ${pkgs.gnugrep}/bin/grep -q org.gnome.gedit; then
@@ -84,6 +94,11 @@ else
     # App exists in old state, check if commit changed
     if [[ -n "" ]] && [[ "$( ${pkgs.flatpak}/bin/flatpak --user info "SomeAppId" --show-commit 2>/dev/null )" != "" ]]; then
       
+      : # No operation if no install command needs to run.
+    elif false; then
+      ${pkgs.flatpak}/bin/flatpak --user --noninteractive install  some-remote SomeAppId
+
+
       : # No operation if no install command needs to run.
     fi
   else

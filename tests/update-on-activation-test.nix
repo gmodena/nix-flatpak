@@ -46,6 +46,11 @@ else
     if [[ -n "" ]] && [[ "$( ${pkgs.flatpak}/bin/flatpak --system info "SomeAppId" --show-commit 2>/dev/null )" != "" ]]; then
       
       : # No operation if no install command needs to run.
+    elif false; then
+      ${pkgs.flatpak}/bin/flatpak --system --noninteractive install  some-remote SomeAppId
+
+
+      : # No operation if no install command needs to run.
     fi
   else
     ${pkgs.flatpak}/bin/flatpak --system --noninteractive install  some-remote SomeAppId
@@ -82,6 +87,11 @@ else
     # App exists in old state, check if commit changed
     if [[ -n "" ]] && [[ "$( ${pkgs.flatpak}/bin/flatpak --system info "SomeAppId" --show-commit 2>/dev/null )" != "" ]]; then
       
+      : # No operation if no install command needs to run.
+    elif true; then
+      ${pkgs.flatpak}/bin/flatpak --system --noninteractive install --or-update some-remote SomeAppId
+
+
       : # No operation if no install command needs to run.
     fi
   else
