@@ -4,44 +4,19 @@ let
   inherit (lib) runTests;
   installation = "system";
   flatpakConfig = import ./config.nix;
-  
-  # Configuration for service-start context (no updates on activation)
-  serviceStartCfg = flatpakConfig // {
+  cfg = flatpakConfig // {
     update = flatpakConfig.update // {
       auto = {
         enable = true;
       };
-      onActivation = false;  # This is key - disable updates on activation
     };
+    # Add the missing packages configuration
     packages = [
       { appId = "SomeAppId"; origin = "some-remote"; }
     ];
   };
-  
-  # Configuration for timer context (allows updates)
-  timerCfg = flatpakConfig // {
-    update = flatpakConfig.update // {
-      auto = {
-        enable = true;
-      };
-      onActivation = true;   # Enable updates for timer context
-    };
-    packages = [
-      { appId = "SomeAppId"; origin = "some-remote"; }
-    ];
-  };
-  
-  timerExecutionContext = import ../modules/flatpak/install.nix { 
-    cfg = timerCfg; 
-    inherit pkgs lib installation; 
-    executionContext = "timer"; 
-  };
-  
-  serviceStartExecutionContext = import ../modules/flatpak/install.nix { 
-    cfg = serviceStartCfg; 
-    inherit pkgs lib installation; 
-    executionContext = "service-start"; 
-  };
+  timerExecutionContext = import ../modules/flatpak/install.nix { inherit cfg pkgs lib installation; executionContext = "timer"; };
+  serviceStartExecutionContext = import ../modules/flatpak/install.nix { inherit cfg pkgs lib installation; executionContext = "service-start"; };
 in
 runTests {
   testDoNotUpdate = {
@@ -70,6 +45,11 @@ else
     # App exists in old state, check if commit changed
     if [[ -n "" ]] && [[ "$( ${pkgs.flatpak}/bin/flatpak --system info "SomeAppId" --show-commit 2>/dev/null )" != "" ]]; then
       
+      : # No operation if no install command needs to run.
+    elif false; then
+      ${pkgs.flatpak}/bin/flatpak --system --noninteractive install  some-remote SomeAppId
+
+
       : # No operation if no install command needs to run.
     fi
   else
@@ -107,6 +87,11 @@ else
     # App exists in old state, check if commit changed
     if [[ -n "" ]] && [[ "$( ${pkgs.flatpak}/bin/flatpak --system info "SomeAppId" --show-commit 2>/dev/null )" != "" ]]; then
       
+      : # No operation if no install command needs to run.
+    elif true; then
+      ${pkgs.flatpak}/bin/flatpak --system --noninteractive install --or-update some-remote SomeAppId
+
+
       : # No operation if no install command needs to run.
     fi
   else
