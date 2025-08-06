@@ -1,5 +1,6 @@
 { config, lib, pkgs, ... }@args:
 let
+  inherit (config.systemd.user) systemctlPath;
   helpers = import ./common.nix { inherit lib config; };
   cfg = helpers.warnDeprecated config.services.flatpak;
   installation = "user";
@@ -45,10 +46,8 @@ in
 
     home.activation = {
       flatpak-managed-install = lib.hm.dag.entryAfter [ "reloadSystemd" ] ''
-        export PATH=${lib.makeBinPath (with pkgs; [ systemd ])}:$PATH
-
-        $DRY_RUN_CMD systemctl is-system-running -q && \
-          systemctl --user start flatpak-managed-install.service || true
+        $DRY_RUN_CMD ${systemctlPath} is-system-running -q && \
+          ${systemctlPath} --user start flatpak-managed-install.service || true
       '';
     };
 
