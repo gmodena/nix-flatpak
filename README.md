@@ -90,6 +90,9 @@ in
   };
 ```
 
+A minimal config that can be built and tested in a NixOS VM (via `nix-build`) can be found
+at [configuration.nix](https://gist.github.com/gmodena/535f33651db735e39fdb74f7c24a56ac).
+
 ### Starter config example
 You can find an example configuration in [testing-base/flatpak.nix](https://github.com/gmodena/nix-flatpak/tree/main/testing-base).
 
