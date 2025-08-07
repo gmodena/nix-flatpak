@@ -32,7 +32,7 @@ For such applications, a convergent approach is a reasonable tradeoff wrt system
 Flatpak applications are installed by systemd oneshot service triggered at system activation. Depending on
 the number of applications to install, this could increase activation time significantly. 
 
-### Manual installation
+### installation
 
 Releases are tagged with [semantic versioning](https://semver.org/). Versions below `1.0.0` are considered early, development, releases.
 Users can track a version by passing its release tag as `ref`
@@ -54,6 +54,40 @@ The `main` branch is considered unstable, and _might_ break installs.
 ...
 nix-flatpak.url = "github:gmodena/nix-flatpak/";
 ...
+```
+
+### Manual installation
+
+While flakes are the recommended (and officially supported) installation method,
+under the hood `nix-flatpak` is just a Nix module.
+
+While `channels` are not supported, it's possible to downloaded and import it with:
+```nix
+# configuration.nix
+let
+  # Fetch nix-flatpak
+  nix-flatpak = pkgs.fetchFromGitHub {
+    owner = "gmodena";
+    repo = "nix-flatpak";
+    rev = "v0.6.0";
+    sha256 = "0s3mpb28rcmma29vv884fi3as926bfszhn7v8n74bpnp5qg5a1c8";
+  };
+in
+  imports = [
+    # Import the nix-flatpak NixOS module.
+    # HomeManager users should import `${nix-flatpak}/modules/home-manager.nix`
+    # where appropriate
+    "${nix-flatpak}/modules/nixos.nix"
+  ];
+  # ... your config
+
+  # Configure nix-flatpak
+  services.flatpak = {
+    enable = true;
+    packages = [
+      "org.mozilla.firefox"
+    ];
+  };
 ```
 
 ### Starter config example
