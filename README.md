@@ -2,7 +2,7 @@
 
 # nix-flatpak
 
-Declarative flatpak manager for NixOS inspired by [declarative-flatpak](https://github.com/GermanBread/declarative-flatpak) and nix-darwin's [homebrew](https://github.com/LnL7/nix-darwin/blob/master/modules/homebrew.nix) module.
+Declarative flatpak manager for NixOS inspired by [declarative-flatpak](https://github.com/in-a-dil-emma/declarative-flatpak) and nix-darwin's [homebrew](https://github.com/LnL7/nix-darwin/blob/master/modules/homebrew.nix) module.
 NixOs and home-manager modules are provided for system wide or user flatpaks installation.
 
 ## Versioning
@@ -197,7 +197,7 @@ Keeping flatpaks and nix store orthogonal is an explicit design choice, dictate 
 
 YMMV.
 
-If you need generational builds, [declarative-flatpak](https://github.com/GermanBread/declarative-flatpak)
+If you want package installation to be atomic, [declarative-flatpak](https://github.com/in-a-dil-emma/declarative-flatpak)
 might be a better fit.
 
 ### Overrides
