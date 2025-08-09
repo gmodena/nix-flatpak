@@ -32,7 +32,7 @@ For such applications, a convergent approach is a reasonable tradeoff wrt system
 Flatpak applications are installed by systemd oneshot service triggered at system activation. Depending on
 the number of applications to install, this could increase activation time significantly. 
 
-### Manual installation
+### installation
 
 Releases are tagged with [semantic versioning](https://semver.org/). Versions below `1.0.0` are considered early, development, releases.
 Users can track a version by passing its release tag as `ref`
@@ -55,6 +55,56 @@ The `main` branch is considered unstable, and _might_ break installs.
 nix-flatpak.url = "github:gmodena/nix-flatpak/";
 ...
 ```
+
+### Manual installation
+
+Flakes are the recommended and officially supported installation method, but
+under the hood `nix-flatpak` is just a Nix module.
+
+`nix-flatpak` is not available in channels and needs to be manually downloaded and imported. Nixpkgs users can use the [fetchFromGithub](https://ryantm.github.io/nixpkgs/builders/fetchers/#fetchfromgithub) fetcher:
+```
+pkgs.fetchFromGitHub {
+    owner = "gmodena";
+    repo = "nix-flatpak";
+    rev = "v0.6.0";
+    hash = "sha256-iAVVHi7X3kWORftY+LVbRiStRnQEob2TULWyjMS6dWg=";
+  };
+```
+The package `hash` can be generated with:
+```bash
+nix-prefetch-github gmodena nix-flatpak --rev <rev>
+```
+
+Example:
+```nix
+let
+  # Fetch nix-flatpak
+  nix-flatpak = pkgs.fetchFromGitHub {
+    owner = "gmodena";
+    repo = "nix-flatpak";
+    rev = "v0.6.0";
+    hash = "sha256-0s3mpb28rcmma29vv884fi3as926bfszhn7v8n74bpnp5qg5a1c8";
+  };
+in
+  imports = [
+    # Import the nix-flatpak NixOS module and install applications system wide.
+    # HomeManager users should import `${nix-flatpak}/modules/home-manager.nix`
+    # where appropriate.
+    "${nix-flatpak}/modules/nixos.nix"
+  ];
+  # ... your config
+
+  # Configure nix-flatpak
+  services.flatpak = {
+    enable = true;
+    packages = [
+      "org.mozilla.firefox"
+    ];
+  };
+```
+
+A minimal config that can be built and tested in a NixOS VM (via `nix-build`) can be found
+at [configuration.nix](https://gist.github.com/gmodena/535f33651db735e39fdb74f7c24a56ac).
 
 ### Starter config example
 You can find an example configuration in [testing-base/flatpak.nix](https://github.com/gmodena/nix-flatpak/tree/main/testing-base).
