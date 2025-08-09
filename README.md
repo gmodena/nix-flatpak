@@ -58,25 +58,38 @@ nix-flatpak.url = "github:gmodena/nix-flatpak/";
 
 ### Manual installation
 
-While flakes are the recommended (and officially supported) installation method,
+Flakes are the recommended and officially supported installation method, but
 under the hood `nix-flatpak` is just a Nix module.
 
-While `channels` are not supported, it's possible to downloaded and import it with:
+`nix-flatpak` is not available in channels and needs to be manually downloaded and imported. Nixpkgs users can use the [fetchFromGithub](https://ryantm.github.io/nixpkgs/builders/fetchers/#fetchfromgithub) fetcher:
+```
+pkgs.fetchFromGitHub {
+    owner = "gmodena";
+    repo = "nix-flatpak";
+    rev = "v0.6.0";
+    hash = "sha256-iAVVHi7X3kWORftY+LVbRiStRnQEob2TULWyjMS6dWg=";
+  };
+```
+The package `hash` can be generated with:
+```bash
+nix-prefetch-github gmodena nix-flatpak --rev <rev>
+```
+
+Example:
 ```nix
-# configuration.nix
 let
   # Fetch nix-flatpak
   nix-flatpak = pkgs.fetchFromGitHub {
     owner = "gmodena";
     repo = "nix-flatpak";
     rev = "v0.6.0";
-    sha256 = "0s3mpb28rcmma29vv884fi3as926bfszhn7v8n74bpnp5qg5a1c8";
+    hash = "sha256-0s3mpb28rcmma29vv884fi3as926bfszhn7v8n74bpnp5qg5a1c8";
   };
 in
   imports = [
-    # Import the nix-flatpak NixOS module.
+    # Import the nix-flatpak NixOS module and install applications system wide.
     # HomeManager users should import `${nix-flatpak}/modules/home-manager.nix`
-    # where appropriate
+    # where appropriate.
     "${nix-flatpak}/modules/nixos.nix"
   ];
   # ... your config
