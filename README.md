@@ -197,7 +197,7 @@ Keeping flatpaks and nix store orthogonal is an explicit design choice, dictate 
 
 YMMV.
 
-If you want package installation to be atomic, [declarative-flatpak](https://github.com/in-a-dil-emma/declarative-flatpak)
+If you want an alternative approach with transactional package installation, [declarative-flatpak](https://github.com/in-a-dil-emma/declarative-flatpak)
 might be a better fit.
 
 ### Overrides
