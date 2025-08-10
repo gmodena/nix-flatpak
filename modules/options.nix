@@ -60,9 +60,9 @@ let
       bundle = mkOption {
         type = types.nullOr types.str;
         description = ''
-            Path to a local Flatpak bundle to install. The file name should follow Flatpak's conventions:
-            https://docs.flatpak.org/en/latest/conventions.html
-          '';
+          Path to a local Flatpak bundle to install. The file name should follow Flatpak's conventions:
+          https://docs.flatpak.org/en/latest/conventions.html
+        '';
         default = null;
       };
     };
@@ -167,6 +167,42 @@ let
     };
   };
 
+  overridesOptions = _: {
+    options = {
+      settings = mkOption {
+        type = with types; attrsOf (attrsOf (attrsOf (either str (listOf str))));
+        default = { };
+        description = ''
+          Applies the provided attribute set into a Flatpak overrides file with the
+          same structure, keeping externally applied changes.
+        '';
+        example = literalExpression ''
+          {
+            # Array entries will be merged with externally applied values
+            "com.visualstudio.code".Context.sockets = ["wayland" "!x11" "!fallback-x11"];
+            # String entries will override externally applied values
+            global.Environment.LC_ALL = "C.UTF-8";
+          };
+        '';
+      };
+
+      files = mkOption {
+        type = with types; listOf str;
+        default = [ ];
+        description = ''
+          A list of paths to Flatpak overrides files.
+          The files will be merged with the overrides attribute set.
+          The files are expected to be in the same format as the overrides attribute set.
+        '';
+        example = literalExpression ''
+          [
+            "/path/to/overrides.d/com.visualstudio.code"
+            "/path/to/overrides.d/org.gnome.Terminal"
+          ];
+        '';
+      };
+    };
+  };
 in
 {
   packages = mkOption {
@@ -199,7 +235,8 @@ in
   };
 
   overrides = mkOption {
-    type = with types; attrsOf (attrsOf (attrsOf (either str (listOf str))));
+    #type = with types; coercedTo attrs (attrs: { inherit attrs; }) (submodule overridesOptions);
+    # type = with types; attrsOf (coercedTo attrs (attrs: { inherit attrs; }) (submodule overridesOptions));
     default = { };
     description = ''
       Applies the provided attribute set into a Flatpak overrides file with the
