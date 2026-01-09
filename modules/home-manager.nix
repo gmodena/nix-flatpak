@@ -11,7 +11,7 @@ in
     enable = with lib; mkOption {
       type = types.bool;
       default = args.osConfig.services.flatpak.enable or false;
-      description = mkDoc "Whether to enable nix-flatpak declarative flatpak management in home-manager.";
+      description = "Whether to enable nix-flatpak declarative flatpak management in home-manager.";
     };
   };
 
