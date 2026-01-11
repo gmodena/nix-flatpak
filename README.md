@@ -15,7 +15,7 @@ We use Git tags and branches to manage versions:
 
 
 This project is released as a [flake](https://nixos.wiki/wiki/Flakes), and is published
-on [flakehub](https://flakehub.com/flake/gmodena/nix-flatpak).
+on [flakehub](https://flakehub.com/flake/gmodena/nix-flatpak) and [flakestry](https://flakestry.dev/flake/github/gmodena/nix-flatpak/0.7.0).
 
 
 ## Background
