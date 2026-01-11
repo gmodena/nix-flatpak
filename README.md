@@ -195,6 +195,32 @@ When installing an application from a `flatpakref`, the application remote will 
 1. If the package does not specify an origin, use the remote name suggested by the flatpakref in `SuggestRemoteName`.
 2. If the flatpakref does not suggest a remote name, sanitize the flatpakref `Name` key with the same algo flatpak implements in [create_origin_remote_config()](https://github.com/flatpak/flatpak/blob/b730771bd793b34fb63fcbf292beed35476e5b92/common/flatpak-dir.c#L14423).
 
+#### Flatpak bundles
+Bundle files (`.flatpak`) can be installed directly by pointing `bundle` at a URI and providing a matching `sha256`:
+```nix
+services.flatpak.packages = [
+  rec {
+    appId = "<appId>";
+    sha256 = "<hash>";
+    bundle = "${pkgs.fetchurl {
+      url = "<bundle-uri>";
+      inherit sha256;
+    }}";
+  }
+];
+```
+
+You can also install a local bundle from disk:
+```nix
+services.flatpak.packages = [
+  {
+    bundle = "file:///path/to/local/app.flatpak";
+    appId = "<appId>";
+    sha256 = "<hash>";
+  }
+];
+```
+
 ##### Unmanaged packages and remotes
 
 By default `nix-flatpak` will only manage (install/uninstall/update) packages declared in the
