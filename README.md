@@ -9,8 +9,8 @@ NixOs and home-manager modules are provided for system wide or user flatpaks ins
 
 We use Git tags and branches to manage versions:
 
-- **`0.6.0`** → Current stable release.
-- **`latest`** → Always points to the most recent stable version (`0.6.0` as of now).
+- **`0.7.0`** → Current stable release.
+- **`latest`** → Always points to the most recent stable version (`0.7.0` as of now).
 - **`main`** → Unstable, development branch.
 
 
@@ -22,6 +22,9 @@ on [flakehub](https://flakehub.com/flake/gmodena/nix-flatpak).
 
 This project was inspired by  Martin Wimpress' [Blending NixOS with Flathub for friends and family](https://talks.nixcon.org/nixcon-2023/talk/MNUFFP/)
 talk at NixCon 2023.
+
+
+For implementation details and info about how this project came to be, see my [Flatpaks The Nix Way](https://talks.nixcon.org/nixcon-2025/talk/XJ9JLH/) talk at NixCon 2025. [slides](https://nowave.it/docs/nixcon25-flatpaks_the_nix_way.pdf).
 
 `nix-flatpak` follows a [convergent mode](https://flyingcircus.io/blog/thoughts-on-systems-management-methods/) approach to package management (described in [this thread](https://discourse.nixos.org/t/feature-discussion-declarative-flatpak-configuration/26767/2)):
 the target system state description is not exhaustive, and there's room for divergence across builds
@@ -38,7 +41,7 @@ Releases are tagged with [semantic versioning](https://semver.org/). Versions be
 Users can track a version by passing its release tag as `ref`
 ```nix
 ...
-nix-flatpak.url = "github:gmodena/nix-flatpak/?ref=v0.6.0";
+nix-flatpak.url = "github:gmodena/nix-flatpak/?ref=v0.7.0";
 ...
 ```
 
@@ -66,8 +69,8 @@ under the hood `nix-flatpak` is just a Nix module.
 pkgs.fetchFromGitHub {
     owner = "gmodena";
     repo = "nix-flatpak";
-    rev = "v0.6.0";
-    hash = "sha256-iAVVHi7X3kWORftY+LVbRiStRnQEob2TULWyjMS6dWg=";
+    rev = "v0.7.0";
+    hash = "sha256-7ZCulYUD9RmJIDULTRkGLSW1faMpDlPKcbWJLYHoXcs=";
   };
 ```
 The package `hash` can be generated with:
@@ -82,8 +85,8 @@ let
   nix-flatpak = pkgs.fetchFromGitHub {
     owner = "gmodena";
     repo = "nix-flatpak";
-    rev = "v0.6.0";
-    hash = "sha256-0s3mpb28rcmma29vv884fi3as926bfszhn7v8n74bpnp5qg5a1c8";
+    rev = "v0.7.0";
+    hash = "sha256-7ZCulYUD9RmJIDULTRkGLSW1faMpDlPKcbWJLYHoXcs=";
   };
 in
   imports = [
