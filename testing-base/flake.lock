@@ -1,0 +1,61 @@
+{
+  "nodes": {
+    "flatpaks": {
+      "locked": {
+        "path": "../",
+        "type": "path"
+      },
+      "original": {
+        "path": "../",
+        "type": "path"
+      },
+      "parent": []
+    },
+    "home-manager": {
+      "inputs": {
+        "nixpkgs": [
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1768603898,
+        "narHash": "sha256-vRV1dWJOCpCal3PRr86wE2WTOMfAhTu6G7bSvOsryUo=",
+        "owner": "nix-community",
+        "repo": "home-manager",
+        "rev": "2a63d0e9d2c72ac4d4150ebb242cf8d86f488c8c",
+        "type": "github"
+      },
+      "original": {
+        "owner": "nix-community",
+        "ref": "release-25.11",
+        "repo": "home-manager",
+        "type": "github"
+      }
+    },
+    "nixpkgs": {
+      "locked": {
+        "lastModified": 1768323494,
+        "narHash": "sha256-yBXJLE6WCtrGo7LKiB6NOt6nisBEEkguC/lq/rP3zRQ=",
+        "owner": "NixOS",
+        "repo": "nixpkgs",
+        "rev": "2c3e5ec5df46d3aeee2a1da0bfedd74e21f4bf3a",
+        "type": "github"
+      },
+      "original": {
+        "owner": "NixOS",
+        "ref": "nixos-25.11",
+        "repo": "nixpkgs",
+        "type": "github"
+      }
+    },
+    "root": {
+      "inputs": {
+        "flatpaks": "flatpaks",
+        "home-manager": "home-manager",
+        "nixpkgs": "nixpkgs"
+      }
+    }
+  },
+  "root": "root",
+  "version": 7
+}

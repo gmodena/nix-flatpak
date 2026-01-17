@@ -1,6 +1,6 @@
 # Testing base
 
-A base GDM + Gnome `nixos` system to experiment with `nix-flatpak`. By default the flake will install NixOS 24.11 and the `nix-flatpak` module sourced from a local clone of this repo (`main` branch, unstable). Adjust `flake.nix` if you need a different setup.
+A base GDM + Gnome `nixos` system to experiment with `nix-flatpak`. By default the flake will install NixOS 25.11 and the `nix-flatpak` module sourced from a local clone of this repo (`main` branch, unstable). Adjust `flake.nix` if you need a different setup.
 
 The config is structured as follows
 * `flake.nix` provides two outputs; one installs nix-flatpak as a home-manager module, the other a NixOS module. See the **Getting Started** session below for more details.
