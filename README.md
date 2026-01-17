@@ -344,3 +344,7 @@ itself was imported.
 To work around this issue, you should avoid nesting home-manager modules. This means that when you are structuring your configuration, make sure that you do not have home-manager modules imported within each other in a way that could lead to circular imports.
 
 You can follow the discussions and updates on issue [#25](https://github.com/gmodena/nix-flatpak/issues/25) to stay informed about any resolutions or workarounds.
+
+## Q&A and support
+
+For further support questions and common issues on how to integrate and set up `nix-flatpak` on your system, please consult the [Q&A discussions page](https://github.com/gmodena/nix-flatpak/discussions/categories/q-a).
