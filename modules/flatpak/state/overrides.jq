@@ -5,12 +5,19 @@
 # - active: Currently active overrides (existing state)
 # - old_state: Previous declarative state
 # - new_state: New declarative state
+# - has_override_file: Boolean flag indicating if an override file is being used
+# - file_was_removed: Boolean flag indicating if an override file was removed
 #
 # Merge Logic:
 # The script applies changes on top of base configuration while preserving
 # manual modifications that weren't part of the previous declarative state.
 #
 # For each entry, the merge formula is:
+# When `has_override_file` is true:
+#   base + new
+# When `file_was_removed` is true:
+#   base + new (authoritative merge, don't preserve "manual" changes from removed file)
+# When `has_override_file` is false and `file_was_removed` is false:
 #   base + (active - old) + new
 #
 # Where:
@@ -29,6 +36,8 @@
 # - $active: Currently active overrides
 # - $old_state: Previous state for this app
 # - $new_state: New state for this app
+# - $has_override_file: Boolean flag indicating if a file is present
+# - $file_was_removed: Boolean flag indicating if a file was removed from config
 
 # Convert entry value into array for consistent processing
 def values($value):
@@ -39,8 +48,9 @@ def values($value):
   end;
 
 # Extract state aliases for the current app
-(try $old_state.overrides.settings[$app_id] catch $old_state.overrides[$app_id]) as $old
-| (try $new_state.overrides.settings[$app_id] catch $new_state.overrides) as $new
+# Support both new format (overrides.settings) and legacy format (overrides directly)
+($old_state.overrides.settings[$app_id] // $old_state.overrides[$app_id]) as $old
+| ($new_state.overrides.settings[$app_id] // $new_state.overrides[$app_id]) as $new
 # Process all sections that exist in base, active, or new state
 | $base_overrides + $active + $new
 | keys
@@ -67,8 +77,15 @@ def values($value):
                         # String values completely override arrays
                         $new_value
                       else
-                        # Array merge: base + (active - old) + new
-                        values($base_value) + (values($active_value) - values($old_value)) + values($new_value)
+                        # Array merge: authoritative if file exists or was removed, else preserve manual
+                        (if $has_override_file then
+                          values($base_value) + values($new_value)
+                        elif $file_was_removed then
+                          # File was removed - use authoritative merge, don't preserve "manual" changes
+                          values($base_value) + values($new_value)
+                        else
+                          values($base_value) + (values($active_value) - values($old_value)) + values($new_value)
+                        end)
                         # Remove empty arrays and deduplicate/sort values
                         | select(. != [])
                         | map(select(. != ""))

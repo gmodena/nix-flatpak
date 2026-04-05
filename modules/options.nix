@@ -201,6 +201,16 @@ let
           ];
         '';
       };
+
+      deleteOrphanedFiles = mkOption {
+        type = types.bool;
+        default = false;
+        description = ''
+          When true, override files that are removed from configuration will be
+          deleted from the flatpak overrides directory. When false (default),
+          orphaned override files are preserved.
+        '';
+      };
     };
   };
 in

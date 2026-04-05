@@ -281,10 +281,15 @@ might be a better fit.
 
 ### Overrides
 
-Package overrides can be declared via `services.flatpak.overrides`. Following is a usage example:
+Flatpak overrides allow you to modify application permissions and environment variables. `nix-flatpak` provides two ways to manage overrides: inline `settings` and external `files`.
+
+#### Settings (inline configuration)
+
+Use `services.flatpak.overrides.settings` to declare overrides directly in your nix configuration:
+
 ```nix
 {
-  services.flatpak.overrides = {
+  services.flatpak.overrides.settings = {
     global = {
       # Force Wayland by default
       Context.sockets = ["wayland" "!x11" "!fallback-x11"];
@@ -313,6 +318,69 @@ Package overrides can be declared via `services.flatpak.overrides`. Following is
   };
 }
 ```
+
+**Backwards compatibility:** The legacy format `services.flatpak.overrides = { "app.id" = {...}; }` (without the `.settings` wrapper) is still supported.
+
+#### Files (external override files)
+
+Use `services.flatpak.overrides.files` to load overrides from external files. This is useful for:
+- Sharing override configurations across machines
+- Managing complex overrides separately from your nix configuration
+- Using existing Flatpak override files
+
+```nix
+{
+  services.flatpak.overrides.files = [
+    "/path/to/overrides.d/com.visualstudio.code"
+    "/path/to/overrides.d/org.gnome.Terminal"
+  ];
+}
+```
+
+The file name must match the application ID (e.g., `com.visualstudio.code`). Files should be in standard Flatpak override INI format:
+
+```ini
+[Context]
+sockets=wayland;!x11;
+
+[Environment]
+GTK_THEME=Adwaita:dark
+```
+
+#### Combining settings and files
+
+When both `settings` and `files` are specified for the same application, they are merged. Values from `settings` take precedence over values from `files`, and both are merged with any externally applied overrides already on disk.
+
+```nix
+{
+  services.flatpak.overrides = {
+    # Base configuration from file
+    files = [ "/path/to/overrides.d/com.visualstudio.code" ];
+
+    # Additional settings merged on top
+    settings."com.visualstudio.code".Context.sockets = ["gpg-agent"];
+  };
+}
+```
+
+#### Deleting orphaned override files
+
+By default, when you remove an override from your nix configuration, the corresponding file in the flatpak overrides directory is preserved on disk. This behaviour is controlled by the `deleteOrphanedFiles` option:
+
+```nix
+{
+  services.flatpak.overrides.deleteOrphanedFiles = false; # Default
+}
+```
+
+| `deleteOrphanedFiles` | Override removed from config | Result |
+|-----------------------|------------------------------|--------|
+| `false` (default)     | Yes                          | Override file **preserved** on disk |
+| `true`                | Yes                          | Override file **deleted** from disk |
+
+When `deleteOrphanedFiles = true`, nix-flatpak scans the actual overrides directory and removes any files that are not declared in the current configuration (either in `settings` or `files`). This ensures a clean state where only managed overrides exist.
+
+**Note:** If you previously had `deleteOrphanedFiles = false` and orphaned files accumulated on disk, switching to `deleteOrphanedFiles = true` will delete all unmanaged override files on the next activation.
 
 ### Systemd unit retry on error
 On flaky network connections the `nix-flatpak` installer script may fail. 

@@ -175,7 +175,9 @@ let
       --argjson old "$OLD_STATE" \
       --argjson new "$NEW_STATE" \
       --argjson override_files '${builtins.toJSON overrideFiles}' \
-      '[(((try $new.overrides.settings catch $new.overrides) + (try $old.overrides.settings catch $old.overrides) | keys[]), ($override_files | keys[]))] | unique[]' \
+      '[(((try $new.overrides.settings catch $new.overrides) + (try $old.overrides.settings catch $old.overrides) | keys[]),
+        ($override_files | keys[]),
+        ($old.overrides.files // [] | map(split("/") | last) | .[]))] | unique[]' \
       | while read -r APP_ID; do
         OVERRIDES_PATH=${overridesDir}/$APP_ID
 
@@ -185,15 +187,39 @@ let
           --argjson override_files '${builtins.toJSON  overrideFiles}' \
           '$override_files[$app_id] // empty')
 
+        # Check if file was removed (was in old state, not in current config)
+        WAS_FILE_REMOVED=$(${pkgs.jq}/bin/jq -r -n \
+          --arg app_id "$APP_ID" \
+          --argjson old "$OLD_STATE" \
+          --argjson override_files '${builtins.toJSON overrideFiles}' \
+          '($old.overrides.files // [] | map(split("/") | last) | index($app_id) != null) and
+           ($override_files[$app_id] == null)')
+
+        # Check if app has any new configuration (settings or override file)
+        HAS_NEW_CONFIG=$(${pkgs.jq}/bin/jq -r -n \
+          --arg app_id "$APP_ID" \
+          --argjson new "$NEW_STATE" \
+          --argjson override_files '${builtins.toJSON overrideFiles}' \
+          '((try $new.overrides.settings[$app_id] catch $new.overrides[$app_id]) != null) or
+           ($override_files[$app_id] != null)')
+
+        # Skip orphaned apps when deleteOrphanedFiles=false
+        # (apps only from removed files with no new configuration)
+        if [[ "$WAS_FILE_REMOVED" == "true" && "$HAS_NEW_CONFIG" == "false" ]]; then
+          ${if cfg.overrides.deleteOrphanedFiles then ":" else "continue"}
+        fi
+
         # Read the base file from overrideFiles and convert to JSON (if file exists)
         if [[ -n "$OVERRIDE_FILE" && -f "$OVERRIDE_FILE" ]]; then
           BASE_OVERRIDES=$(${pkgs.coreutils}/bin/cat "$OVERRIDE_FILE" \
             | ${pkgs.jc}/bin/jc --ini \
             | ${pkgs.jq}/bin/jq 'map_values(map_values(split(";") | select(. != []) // ""))')
+          HAS_OVERRIDE_FILE=true
         else
           BASE_OVERRIDES={}
+          HAS_OVERRIDE_FILE=false
         fi
-        
+
         # Read existing active overrides if they exist
         if [[ -f $OVERRIDES_PATH ]]; then
           ACTIVE=$(${pkgs.coreutils}/bin/cat $OVERRIDES_PATH \
@@ -202,7 +228,7 @@ let
         else
           ACTIVE={}
         fi
-        
+
         # Generate and save the updated overrides file
         ${pkgs.jq}/bin/jq -r -n \
           --arg app_id "$APP_ID" \
@@ -210,9 +236,34 @@ let
           --argjson active "$ACTIVE" \
           --argjson old_state "$OLD_STATE" \
           --argjson new_state "$NEW_STATE" \
+          --argjson has_override_file "$HAS_OVERRIDE_FILE" \
+          --argjson file_was_removed "$WAS_FILE_REMOVED" \
           --from-file ${./state/overrides.jq} \
           >$OVERRIDES_PATH
       done
+
+    # Delete orphaned override files when deleteOrphanedFiles mode is enabled
+    # Scan actual disk to catch files that were orphaned before deleteOrphanedFiles was enabled
+    ${lib.optionalString cfg.overrides.deleteOrphanedFiles ''
+      if [[ -d "${overridesDir}" ]]; then
+        for OVERRIDE_FILE in "${overridesDir}"/*; do
+          [[ -f "$OVERRIDE_FILE" ]] || continue
+          APP_ID=$(${pkgs.coreutils}/bin/basename "$OVERRIDE_FILE")
+
+          # Check if this app is managed in current config (settings or files)
+          IS_MANAGED=$(${pkgs.jq}/bin/jq -r -n \
+            --arg app_id "$APP_ID" \
+            --argjson new "$NEW_STATE" \
+            --argjson override_files '${builtins.toJSON overrideFiles}' \
+            '((try $new.overrides.settings[$app_id] catch $new.overrides[$app_id]) != null) or
+             ($override_files[$app_id] != null)')
+
+          if [[ "$IS_MANAGED" == "false" ]]; then
+            ${pkgs.coreutils}/bin/rm -f "$OVERRIDE_FILE"
+          fi
+        done
+      fi
+    ''}
     '';
 
   flatpakInstallCmd = installation: update: { appId, origin ? "flathub", commit ? null, flatpakref ? null, bundle ? null, sha256 ? null, ... }:
