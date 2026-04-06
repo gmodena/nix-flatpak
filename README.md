@@ -283,6 +283,9 @@ might be a better fit.
 
 Flatpak overrides allow you to modify application permissions and environment variables. `nix-flatpak` provides two ways to manage overrides: inline `settings` and external `files`.
 
+**WARNING**: using these settings will overwrite system/user flatpak override files and could cause data loss. Backup
+your files before enabling `.settings` and/or `.files`.
+
 #### Settings (inline configuration)
 
 Use `services.flatpak.overrides.settings` to declare overrides directly in your nix configuration:
@@ -319,7 +322,7 @@ Use `services.flatpak.overrides.settings` to declare overrides directly in your 
 }
 ```
 
-**Backwards compatibility:** The legacy format `services.flatpak.overrides = { "app.id" = {...}; }` (without the `.settings` wrapper) is still supported.
+**Backwards compatibility:** The legacy  (`nix-flatpak` <= 0.7) format `services.flatpak.overrides = { "app.id" = {...}; }` (without the `.settings` wrapper) is still supported.
 
 #### Files (external override files)
 
