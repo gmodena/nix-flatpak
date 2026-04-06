@@ -12,6 +12,9 @@ let
     (builtins.filter (package: utils.isFlatpakref package) cfg.packages);
 
   # We use an incremental versioning scheme for the state file. For internal use only.
+  # none. legacy state management
+  # 1. Initial state object format. Store package and remotes attrsets instead of just keys.
+  # 2. Added support of `overrides.settings` and `overrides.files` attrs.
   formatVersion = 2;
 
   # Put the state file in the `gcroots` folder of the respective installation,
