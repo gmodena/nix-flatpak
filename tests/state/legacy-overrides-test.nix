@@ -160,4 +160,74 @@ runTests {
     ];
     expected = true;
   };
+
+  # Throw when two patchs contain duplicated basenames.
+  testDuplicateBasenamesThrows = {
+    expr = builtins.tryEval (
+      (import ../../modules/flatpak/install.nix {
+        cfg = baseConfig // {
+          overrides = {
+            files = [
+              "/path/a/com.example.app"
+              "/path/b/com.example.app"
+            ];
+          };
+        };
+        inherit pkgs lib installation;
+        executionContext = "service-start";
+      }).mkOverridesCmd
+    );
+    expected = { success = false; value = false; };
+  };
+
+  # Throw if path contains newline.
+  testPathWithNewlineThrows = {
+    expr = builtins.tryEval (
+      (import ../../modules/flatpak/install.nix {
+        cfg = baseConfig // {
+          overrides = {
+            files = [ "/path/to/com.example\napp" ];
+          };
+        };
+        inherit pkgs lib installation;
+        executionContext = "service-start";
+      }).mkOverridesCmd
+    );
+    expected = { success = false; value = false; };
+  };
+
+  # Throw if path contains single quote.
+  testPathWithSingleQuoteThrows = {
+    expr = builtins.tryEval (
+      (import ../../modules/flatpak/install.nix {
+        cfg = baseConfig // {
+          overrides = {
+            files = [ "/path/to/com.example'app" ];
+          };
+        };
+        inherit pkgs lib installation;
+        executionContext = "service-start";
+      }).mkOverridesCmd
+    );
+    expected = { success = false; value = false; };
+  };
+
+  # Two distinct basenames must succeed.
+  testValidUniquePathsSucceed = {
+    expr = builtins.isString (
+      (import ../../modules/flatpak/install.nix {
+        cfg = baseConfig // {
+          overrides = {
+            files = [
+              "/path/a/com.example.app"
+              "/path/b/org.gnome.Terminal"
+            ];
+          };
+        };
+        inherit pkgs lib installation;
+        executionContext = "service-start";
+      }).mkOverridesCmd
+    );
+    expected = true;
+  };
 }

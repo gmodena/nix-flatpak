@@ -23,7 +23,11 @@ rec {
     Persistent = "true";
   };
 
-  # Detect legacy overrides format (settings directly under `overrides` instead of `overrides.settings`)
+  # Detect legacy overrides format (settings directly under `overrides` instead of `overrides.settings`).
+  # Note: since the `overrides` option now uses `coercedTo`, freshly-evaluated NixOS/home-manager
+  # configs will always arrive here in the new submodule shape. Coercion normalises the legacy format
+  # before it reaches this function. This check therefore only fires when reading legacy JSON state
+  # files that were written by an older version of nix-flatpak and have not yet been migrated.
   hasLegacyOverrides = cfg:
     let
       newFormatKeys = [ "settings" "files" "deleteOrphanedFiles" ];

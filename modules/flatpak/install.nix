@@ -164,12 +164,48 @@ let
     then "/var/lib/flatpak/overrides"
     else "\${XDG_DATA_HOME:-$HOME/.local/share}/flatpak/overrides";
 
-  overrideFiles = builtins.listToAttrs (
-    builtins.map (path: {
-      name = builtins.baseNameOf path;
-      value = path;
-    }) (cfg.overrides.files or [])
-  );
+  overrideFiles =
+    let
+      files = cfg.overrides.files or [];
+
+      # Flatpak uses the basename of each override file as the appId key (e.g. "com.example.App").
+      # If two paths share the same basename, builtins.listToAttrs would silently drop one of them
+      # with no indication of which was kept. We detect this early and fail with a clear message
+      # so the user can fix their configuration before it causes confusing runtime behaviour.
+      basenames = map builtins.baseNameOf files;
+      duplicates = lib.lists.unique (
+        builtins.filter
+          (name: builtins.length (builtins.filter (n: n == name) basenames) > 1)
+          basenames
+      );
+
+      # Paths flow through jq into a shell `cat "$OVERRIDE_FILE"` invocation.
+      # Newlines and null bytes corrupt the `while read` loop that
+      # iterates over appIds, and single quotes can break out of jq's single-quoted
+      # string literals. Reject these at evaluation time so they never reach the
+      # generated shell script.
+      # TODO(gmodena, 2026-04): this list is expected to grow.
+      invalidChars = [ "\n" "\r" "\x00" "'" ];
+      hasInvalidChar = path: builtins.any (c: lib.strings.hasInfix c path) invalidChars;
+      invalidPaths = builtins.filter hasInvalidChar files;
+    in
+    if invalidPaths != []
+    then throw ''
+      services.flatpak.overrides.files: the following paths contain invalid characters: ${builtins.toJSON invalidPaths}
+    ''
+    else if duplicates != []
+    then throw ''
+      services.flatpak.overrides.files: duplicate override file basenames detected: ${builtins.concatStringsSep ", " duplicates}.
+      Flatpak uses the basename as the app ID key; each path must have a unique basename.
+      Conflicting paths: ${builtins.toJSON files}
+    ''
+    else
+      builtins.listToAttrs (
+        builtins.map (path: {
+          name = builtins.baseNameOf path;
+          value = path;
+        }) files
+      );
 
   flatpakOverridesCmd = installation: {}: ''
     # Update overrides that are managed by this module (both old and new)

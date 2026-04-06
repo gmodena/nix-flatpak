@@ -245,8 +245,15 @@ in
   };
 
   overrides = mkOption {
-    #type = with types; coercedTo attrs (attrs: { inherit attrs; }) (submodule overridesOptions);
-    # type = with types; attrsOf (coercedTo attrs (attrs: { inherit attrs; }) (submodule overridesOptions));
+    # Accept both the legacy format (attrset of appId -> INI sections) and the submodule format.
+    # coercedTo detects the legacy shape and wraps it into { settings = <legacy>; } so downstream code
+    # always receives a consistent submodule value.
+    type = with types;
+      coercedTo
+        (addCheck (attrsOf (attrsOf (attrsOf (either str (listOf str)))))
+          (v: !(v ? settings || v ? files || v ? deleteOrphanedFiles)))
+        (legacySettings: { settings = legacySettings; })
+        (submodule overridesOptions);
     default = { };
     description = ''
       Applies the provided attribute set into a Flatpak overrides file with the
