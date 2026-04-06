@@ -166,9 +166,9 @@ let
 
   overrideFiles = builtins.listToAttrs (
     builtins.map (path: {
-      name = builtins.baseNameOf path; 
-      value = path;                     
-    }) cfg.overrides.files
+      name = builtins.baseNameOf path;
+      value = path;
+    }) (cfg.overrides.files or [])
   );
 
   flatpakOverridesCmd = installation: {}: ''
@@ -178,7 +178,7 @@ let
       --argjson old "$OLD_STATE" \
       --argjson new "$NEW_STATE" \
       --argjson override_files '${builtins.toJSON overrideFiles}' \
-      '[(((try $new.overrides.settings catch $new.overrides) + (try $old.overrides.settings catch $old.overrides) | keys[]),
+      '[((($new.overrides.settings // $new.overrides) + ($old.overrides.settings // $old.overrides) | keys[]),
         ($override_files | keys[]),
         ($old.overrides.files // [] | map(split("/") | last) | .[]))] | unique[]' \
       | while read -r APP_ID; do
@@ -203,13 +203,13 @@ let
           --arg app_id "$APP_ID" \
           --argjson new "$NEW_STATE" \
           --argjson override_files '${builtins.toJSON overrideFiles}' \
-          '((try $new.overrides.settings[$app_id] catch $new.overrides[$app_id]) != null) or
+          '(($new.overrides.settings[$app_id] // $new.overrides[$app_id]) != null) or
            ($override_files[$app_id] != null)')
 
         # Skip orphaned apps when deleteOrphanedFiles=false
         # (apps only from removed files with no new configuration)
         if [[ "$WAS_FILE_REMOVED" == "true" && "$HAS_NEW_CONFIG" == "false" ]]; then
-          ${if cfg.overrides.deleteOrphanedFiles then ":" else "continue"}
+          ${if (cfg.overrides.deleteOrphanedFiles or false) then ":" else "continue"}
         fi
 
         # Read the base file from overrideFiles and convert to JSON (if file exists)
@@ -247,7 +247,7 @@ let
 
     # Delete orphaned override files when deleteOrphanedFiles mode is enabled
     # Scan actual disk to catch files that were orphaned before deleteOrphanedFiles was enabled
-    ${lib.optionalString cfg.overrides.deleteOrphanedFiles ''
+    ${lib.optionalString (cfg.overrides.deleteOrphanedFiles or false) ''
       if [[ -d "${overridesDir}" ]]; then
         for OVERRIDE_FILE in "${overridesDir}"/*; do
           [[ -f "$OVERRIDE_FILE" ]] || continue
@@ -258,7 +258,7 @@ let
             --arg app_id "$APP_ID" \
             --argjson new "$NEW_STATE" \
             --argjson override_files '${builtins.toJSON overrideFiles}' \
-            '((try $new.overrides.settings[$app_id] catch $new.overrides[$app_id]) != null) or
+            '(($new.overrides.settings[$app_id] // $new.overrides[$app_id]) != null) or
              ($override_files[$app_id] != null)')
 
           if [[ "$IS_MANAGED" == "false" ]]; then
