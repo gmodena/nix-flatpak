@@ -281,23 +281,30 @@ let
           >$OVERRIDES_PATH
       done
 
-    # Delete orphaned override files when deleteOrphanedFiles mode is enabled
-    # Scan actual disk to catch files that were orphaned before deleteOrphanedFiles was enabled
+    # Delete override files that were previously managed by nix-flatpak but have since been removed from configuration.
     ${lib.optionalString (cfg.overrides.deleteOrphanedFiles or false) ''
       if [[ -d "${overridesDir}" ]]; then
         for OVERRIDE_FILE in "${overridesDir}"/*; do
           [[ -f "$OVERRIDE_FILE" ]] || continue
           APP_ID=$(${pkgs.coreutils}/bin/basename "$OVERRIDE_FILE")
 
+          # Check if this app was previously managed by nix-flatpak (in old state)
+          OVERRIDES_WAS_MANAGED=$(${pkgs.jq}/bin/jq -r -n \
+            --arg app_id "$APP_ID" \
+            --argjson old "$OLD_STATE" \
+            '(($old.overrides.settings[$app_id] // $old.overrides[$app_id]) != null) or
+             ($old.overrides.files // [] | map(split("/") | last) | index($app_id) != null)')
+
           # Check if this app is managed in current config (settings or files)
-          IS_MANAGED=$(${pkgs.jq}/bin/jq -r -n \
+          OVERRIDES_IS_MANAGED=$(${pkgs.jq}/bin/jq -r -n \
             --arg app_id "$APP_ID" \
             --argjson new "$NEW_STATE" \
             --argjson override_files '${builtins.toJSON overrideFiles}' \
             '(($new.overrides.settings[$app_id] // $new.overrides[$app_id]) != null) or
              ($override_files[$app_id] != null)')
 
-          if [[ "$IS_MANAGED" == "false" ]]; then
+          # Only delete if it was ours and we've stopped managing it
+          if [[ "$OVERRIDES_WAS_MANAGED" == "true" && "$OVERRIDES_IS_MANAGED" == "false" ]]; then
             ${pkgs.coreutils}/bin/rm -f "$OVERRIDE_FILE"
           fi
         done

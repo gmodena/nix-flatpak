@@ -3,6 +3,78 @@ let
   inherit (pkgs) lib;
   inherit (lib) runTests;
   jqScriptPath = ../../modules/flatpak/state/overrides.jq;
+
+  # Runs the orphan-deletion loop against a temporary overrides directory.
+  # Returns "exists" if `appId` is still present afterwards, "deleted" if not.
+  runDeleteOrphanedTest = { appId, oldStateJson, newStateJson, overrideFilesJson ? "{}" }:
+    builtins.readFile (pkgs.runCommand "delete-orphaned-${appId}" {
+      buildInputs = [ pkgs.jq pkgs.coreutils ];
+    } ''
+      OVERRIDES_DIR=$(mktemp -d)
+      touch "$OVERRIDES_DIR/${appId}"
+
+      OLD_STATE='${oldStateJson}'
+      NEW_STATE='${newStateJson}'
+
+      for OVERRIDE_FILE in "$OVERRIDES_DIR"/*; do
+        [[ -f "$OVERRIDE_FILE" ]] || continue
+        APP_ID=$(${pkgs.coreutils}/bin/basename "$OVERRIDE_FILE")
+
+        OVERRIDES_WAS_MANAGED=$(${pkgs.jq}/bin/jq -r -n \
+          --arg app_id "$APP_ID" \
+          --argjson old "$OLD_STATE" \
+          '(($old.overrides.settings[$app_id] // $old.overrides[$app_id]) != null) or
+           ($old.overrides.files // [] | map(split("/") | last) | index($app_id) != null)')
+
+        OVERRIDES_IS_MANAGED=$(${pkgs.jq}/bin/jq -r -n \
+          --arg app_id "$APP_ID" \
+          --argjson new "$NEW_STATE" \
+          --argjson override_files '${overrideFilesJson}' \
+          '(($new.overrides.settings[$app_id] // $new.overrides[$app_id]) != null) or
+           ($override_files[$app_id] != null)')
+
+        if [[ "$OVERRIDES_WAS_MANAGED" == "true" && "$OVERRIDES_IS_MANAGED" == "false" ]]; then
+          ${pkgs.coreutils}/bin/rm -f "$OVERRIDE_FILE"
+        fi
+      done
+
+      if [[ -f "$OVERRIDES_DIR/${appId}" ]]; then
+        echo -n "exists" > $out
+      else
+        echo -n "deleted" > $out
+      fi
+    '');
+
+  # install.nix instances for structural tests
+  installation = "user";
+  baseConfig = {
+    update = { onActivation = false; auto = { enable = false; }; };
+    remotes = [{ name = "some-remote"; location = "https://some.remote.tld/repo/test-remote.flatpakrepo"; }];
+    packages = [{ appId = "SomeAppId"; origin = "some-remote"; bundle = null; sha256 = null; }];
+    uninstallUnmanaged = false;
+    uninstallUnused = false;
+  };
+  installWithDeleteOrphanedFiles = import ../../modules/flatpak/install.nix {
+    cfg = baseConfig // {
+      overrides = {
+        settings = { "com.example.app" = { "Context" = { "shared" = "network"; }; }; };
+        files = [ "/path/to/com.other.app" ];
+        deleteOrphanedFiles = true;
+      };
+    };
+    inherit pkgs lib installation;
+    executionContext = "service-start";
+  };
+  installWithoutDeleteOrphanedFiles = import ../../modules/flatpak/install.nix {
+    cfg = baseConfig // {
+      overrides = {
+        settings = { "com.example.app" = { "Context" = { "shared" = "network"; }; }; };
+      };
+    };
+    inherit pkgs lib installation;
+    executionContext = "service-start";
+  };
+
   runJqScript = { appId, oldState, newState, activeState, baseOverrides ? "{}", hasOverrideFile ? false, fileWasRemoved ? false }:
     let
       oldFile = pkgs.writeTextFile {
@@ -40,7 +112,6 @@ let
     builtins.toString output; # Preserve newline formatting for INI output
 in
 runTests {
-  # Original tests (should still pass)
   testNoChanges = {
     expr = runJqScript {
       appId = "com.example.app";
@@ -432,5 +503,120 @@ runTests {
       activeState = builtins.toJSON { "Context" = { "shared" = "network"; }; };
     };
     expected = "[Context]\nshared=ipc\n\n";
+  };
+
+
+  # deleteOrphanedFiles=true must generate a script containing OVERRIDES_WAS_MANAGED
+  # (the old-state guard that prevents deletion of user-created files).
+  testDeleteOrphanedFilesChecksOldState = {
+    expr = lib.strings.hasInfix "OVERRIDES_WAS_MANAGED" installWithDeleteOrphanedFiles.mkOverridesCmd;
+    expected = true;
+  };
+
+  # deleteOrphanedFiles=false must not generate any rm -f calls.
+  testDeleteOrphanedFilesDisabledHasNoRm = {
+    expr = lib.strings.hasInfix "rm -f" installWithoutDeleteOrphanedFiles.mkOverridesCmd;
+    expected = false;
+  };
+
+  # file never in old state must not be deleted.
+  testUnmanagedFileIsPreserved = {
+    expr = runDeleteOrphanedTest {
+      appId = "com.handcrafted.App";
+      oldStateJson = builtins.toJSON {
+        version = 2;
+        overrides = { settings = {}; files = []; };
+        packages = [];
+        remotes = [];
+      };
+      newStateJson = builtins.toJSON {
+        version = 2;
+        overrides = { settings = {}; files = []; };
+        packages = [];
+        remotes = [];
+      };
+    };
+    expected = "exists";
+  };
+
+  # A file previously tracked in overrides.settings must be deleted
+  # when removed from the new state.
+  testPreviouslyManagedSettingsFileIsDeleted = {
+    expr = runDeleteOrphanedTest {
+      appId = "com.example.App";
+      oldStateJson = builtins.toJSON {
+        version = 2;
+        overrides = { settings = { "com.example.App" = { Context = { shared = "network"; }; }; }; files = []; };
+        packages = [];
+        remotes = [];
+      };
+      newStateJson = builtins.toJSON {
+        version = 2;
+        overrides = { settings = {}; files = []; };
+        packages = [];
+        remotes = [];
+      };
+    };
+    expected = "deleted";
+  };
+
+  # A file previously tracked via overrides.files must be deleted
+  # when removed from the new state.
+  testPreviouslyManagedOverridesFileIsDeleted = {
+    expr = runDeleteOrphanedTest {
+      appId = "com.file.App";
+      oldStateJson = builtins.toJSON {
+        version = 2;
+        overrides = { settings = {}; files = [ "/some/path/com.file.App" ]; };
+        packages = [];
+        remotes = [];
+      };
+      newStateJson = builtins.toJSON {
+        version = 2;
+        overrides = { settings = {}; files = []; };
+        packages = [];
+        remotes = [];
+      };
+    };
+    expected = "deleted";
+  };
+
+  # A file still present in both old and new state must not be deleted.
+  testCurrentlyManagedFileIsPreserved = {
+    expr = runDeleteOrphanedTest {
+      appId = "com.example.App";
+      oldStateJson = builtins.toJSON {
+        version = 2;
+        overrides = { settings = { "com.example.App" = { Context = { shared = "network"; }; }; }; files = []; };
+        packages = [];
+        remotes = [];
+      };
+      newStateJson = builtins.toJSON {
+        version = 2;
+        overrides = { settings = { "com.example.App" = { Context = { shared = "network"; }; }; }; files = []; };
+        packages = [];
+        remotes = [];
+      };
+    };
+    expected = "exists";
+  };
+
+  # A file tracked in legacy-format old state must be deleted when removed.
+  testLegacyFormatManagedFileIsDeleted = {
+    expr = runDeleteOrphanedTest {
+      appId = "com.legacy.App";
+      oldStateJson = builtins.toJSON {
+        overrides = { "com.legacy.App" = { Context = { shared = "network"; }; }; };
+        packages = [];
+        remotes = [];
+      };
+      newStateJson = builtins.toJSON {
+        version = 2;
+        overrides = { settings = {}; files = []; };
+        packages = [];
+        remotes = [];
+      };
+    };
+    expected = "deleted";
   };
 }
