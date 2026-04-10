@@ -368,6 +368,8 @@ When both `settings` and `files` are specified for the same application, they ar
 
 #### Deleting orphaned override files
 
+**Bugs of incorrect use of this option can result in data loss Make sure your overrides are backed up before enabling this option.**
+
 By default, when you remove an override from your nix configuration, the corresponding file in the flatpak overrides directory is preserved on disk. This behaviour is controlled by the `deleteOrphanedFiles` option:
 
 ```nix
@@ -383,7 +385,7 @@ By default, when you remove an override from your nix configuration, the corresp
 
 When `deleteOrphanedFiles = true`, nix-flatpak scans the actual overrides directory and removes any files that are not declared in the current configuration (either in `settings` or `files`). This ensures a clean state where only managed overrides exist.
 
-**Note:** If you previously had `deleteOrphanedFiles = false` and orphaned files accumulated on disk, switching to `deleteOrphanedFiles = true` will delete all unmanaged override files on the next activation.
+If you previously had `deleteOrphanedFiles = false`, swithing to `deleteOrphanedFiles = true` will delete all override files removed from the current config, that where present in the previous generation. If override files accumulated over previous generations, a manual cleanup of all unmanaged files will be necessary.
 
 ### Systemd unit retry on error
 On flaky network connections the `nix-flatpak` installer script may fail. 
