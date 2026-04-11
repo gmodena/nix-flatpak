@@ -1,6 +1,6 @@
 { config, lib, pkgs, ... }:
 let
-  helpers = import ./common.nix { inherit lib config; };
+  helpers = import ./common.nix { inherit lib; };
   cfg = helpers.warnDeprecated config.services.flatpak;
   installation = "system";
 in
