@@ -1,6 +1,9 @@
-{ config, lib, ... }:
-with lib;
-let
+{
+  config,
+  lib,
+  ...
+}:
+with lib; let
   remoteOptions = _: {
     options = {
       name = mkOption {
@@ -21,7 +24,7 @@ let
       args = mkOption {
         type = types.nullOr types.str;
         description = "Extra arguments to pass to flatpak remote-add.";
-        example = [ "--verbose" ];
+        example = ["--verbose"];
         default = null;
       };
     };
@@ -88,34 +91,39 @@ let
         description = ''
           Specification for the exponential backoff stategy to adopt in case of service failure.
         '';
-        type = with types; submodule (_: {
-          options = {
-            enable = mkOption {
-              type = types.bool;
-              default = false;
-              description = ''
-                Whether to enable exponential backoff in case of failure during installation or upgrade.
-              '';
-            };
+        type = with types;
+          submodule (_: {
+            options = {
+              enable = mkOption {
+                type = types.bool;
+                default = false;
+                description = ''
+                  Whether to enable exponential backoff in case of failure during installation or upgrade.
+                '';
+              };
 
-            steps = mkOption {
-              type = types.int;
-              default = 10;
-              description = ''
-                How many steps will be needed to reach the maximum restart delay.
-              '';
-            };
+              steps = mkOption {
+                type = types.int;
+                default = 10;
+                description = ''
+                  How many steps will be needed to reach the maximum restart delay.
+                '';
+              };
 
-            maxDelay = mkOption {
-              type = types.str;
-              default = "1h";
-              description = ''
-                Maximum delay (in as systemd timespan format) after which update or installation is going to be retried in case of failure.
-              '';
+              maxDelay = mkOption {
+                type = types.str;
+                default = "1h";
+                description = ''
+                  Maximum delay (in as systemd timespan format) after which update or installation is going to be retried in case of failure.
+                '';
+              };
             };
-          };
-        });
-        default = { enable = false; steps = 10; maxDelay = "1h"; };
+          });
+        default = {
+          enable = false;
+          steps = 10;
+          maxDelay = "1h";
+        };
       };
     };
   };
@@ -129,37 +137,38 @@ let
           Whether to enable flatpak to upgrade applications during
           {command}`nixos` system activation. The default is `false`
           so that repeated invocations of {command}`nixos-rebuild switch` are idempotent.
-          
+
           implementation: appends --or-update to each flatpak install command.
         '';
       };
       auto = mkOption {
-        type = with types; submodule (_: {
-          options = {
-            enable = mkOption {
-              type = types.bool;
-              default = false;
-              description = ''
-                Whether to enable flatpak to upgrade applications during
-                {command}`nixos` system activation, and scheudle periodic updates
-                afterwards.
-                
-                implementation: registers a systemd realtime timer that fires with an OnCalendar policy.
-                If a timer had expired while a machine was off/asleep, it will fire upon resume.
-                See https://wiki.archlinux.org/title/systemd/Timers for details.
-              '';
+        type = with types;
+          submodule (_: {
+            options = {
+              enable = mkOption {
+                type = types.bool;
+                default = false;
+                description = ''
+                  Whether to enable flatpak to upgrade applications during
+                  {command}`nixos` system activation, and scheudle periodic updates
+                  afterwards.
+
+                  implementation: registers a systemd realtime timer that fires with an OnCalendar policy.
+                  If a timer had expired while a machine was off/asleep, it will fire upon resume.
+                  See https://wiki.archlinux.org/title/systemd/Timers for details.
+                '';
+              };
+              onCalendar = mkOption {
+                type = types.str;
+                default = "weekly";
+                description = ''
+                  Frequency of periodic updates.
+                  See https://wiki.archlinux.org/title/systemd/Timers for details.
+                '';
+              };
             };
-            onCalendar = mkOption {
-              type = types.str;
-              default = "weekly";
-              description = ''
-                Frequency of periodic updates.
-                See https://wiki.archlinux.org/title/systemd/Timers for details.
-              '';
-            };
-          };
-        });
-        default = { enable = false; };
+          });
+        default = {enable = false;};
         description = ''
           Value(s) in this Nix set are used to configure the behavior of the auto updater.
         '';
@@ -171,7 +180,7 @@ let
     options = {
       settings = mkOption {
         type = with types; attrsOf (attrsOf (attrsOf (either str (listOf str))));
-        default = { };
+        default = {};
         description = ''
           Applies the provided attribute set into a Flatpak overrides file with the
           same structure, keeping externally applied changes.
@@ -187,8 +196,8 @@ let
       };
 
       files = mkOption {
-        type = with types; listOf str;
-        default = [ ];
+        type = with types; listOf (coercedTo path toString str);
+        default = [];
         description = ''
           A list of paths to Flatpak overrides files.
           The files will be merged with the overrides attribute set.
@@ -196,13 +205,15 @@ let
         '';
         example = literalExpression ''
           [
-            "/path/to/overrides.d/com.visualstudio.code"
+            # Nix path literal (pure evaluation)
+            ./overrides.d/com.visualstudio.code
+            # Plain string path (impure evaluation)
             "/path/to/overrides.d/org.gnome.Terminal"
           ];
         '';
       };
 
-      deleteOrphanedFiles = mkOption {
+      pruneUnmanagedOverrides = mkOption {
         type = types.bool;
         default = false;
         description = ''
@@ -211,13 +222,31 @@ let
           orphaned override files are preserved.
         '';
       };
+
+      writeMode = mkOption {
+        type = types.enum ["merge" "replace"];
+        default = "merge";
+        description = ''
+          Controls how Nix-managed override settings are written to the Flatpak
+          overrides directory.
+
+          - "merge" (default): at runtime, existing override files are read
+            and merged with Nix-managed settings. Direct user edits for
+            unmanaged keys are preserved across activations.
+
+          - "replace": the complete override file is computed at evaluation
+            time as a pure Nix derivation (settings merged with file-based
+            settings). At runtime, the pre-computed file is copied into the
+            overrides directory. Nix fully owns the file and any direct edits will
+            be discarded.
+        '';
+      };
     };
   };
-in
-{
+in {
   packages = mkOption {
-    type = with types; listOf (coercedTo str (appId: { inherit appId; }) (submodule packageOptions));
-    default = [ ];
+    type = with types; listOf (coercedTo str (appId: {inherit appId;}) (submodule packageOptions));
+    default = [];
     description = ''
       Declares a list of applications to install.
     '';
@@ -233,8 +262,13 @@ in
     '';
   };
   remotes = mkOption {
-    type = with types; listOf (coercedTo str (name: { inherit name location; }) (submodule remoteOptions));
-    default = [{ name = "flathub"; location = "https://dl.flathub.org/repo/flathub.flatpakrepo"; }];
+    type = with types; listOf (coercedTo str (name: {inherit name location;}) (submodule remoteOptions));
+    default = [
+      {
+        name = "flathub";
+        location = "https://dl.flathub.org/repo/flathub.flatpakrepo";
+      }
+    ];
     description = ''
       Declare a list of flatpak repositories.
     '';
@@ -250,11 +284,11 @@ in
     # always receives a consistent submodule value.
     type = with types;
       coercedTo
-        (addCheck (attrsOf (attrsOf (attrsOf (either str (listOf str)))))
-          (v: !(v ? settings || v ? files || v ? deleteOrphanedFiles)))
-        (legacySettings: { settings = legacySettings; })
-        (submodule overridesOptions);
-    default = { };
+      (addCheck (attrsOf (attrsOf (attrsOf (either str (listOf str)))))
+        (v: !(v ? settings || v ? files || v ? pruneUnmanagedOverrides)))
+      (legacySettings: {settings = legacySettings;})
+      (submodule overridesOptions);
+    default = {};
     description = ''
       Applies the provided attribute set into a Flatpak overrides file with the
       same structure, keeping externally applied changes.
@@ -271,17 +305,23 @@ in
 
   update = mkOption {
     type = with types; submodule updateOptions;
-    default = { onActivation = false; auto = { enable = false; onCalendar = "weekly"; }; };
+    default = {
+      onActivation = false;
+      auto = {
+        enable = false;
+        onCalendar = "weekly";
+      };
+    };
     description = ''
       Whether to enable flatpak to upgrade applications during
       {command}`nixos` system activation. The default is `false`
       so that repeated invocations of {command}`nixos-rebuild switch` are idempotent.
-      
+
       Applications pinned to a specific commit hash will not be updated.
-      
+
       If {command}`auto.enable = true` a periodic update will be scheduled with (approximately)
       weekly recurrence.
-      
+
       See https://wiki.archlinux.org/title/systemd/Timers for more information on systemd timers.
     '';
     example = literalExpression ''
@@ -304,8 +344,13 @@ in
 
   uninstallUnmanaged = mkOption {
     type = with types; bool;
-    default = (if isNull config.services.flatpak.uninstallUnmanagedPackages then false else
-    config.services.flatpak.uninstallUnmanagedPackages) || false;
+    default =
+      (
+        if isNull config.services.flatpak.uninstallUnmanagedPackages
+        then false
+        else config.services.flatpak.uninstallUnmanagedPackages
+      )
+      || false;
     description = ''
       If enabled, uninstall packages and delete remotes not managed by this module on activation.
       I.e. if packages were installed via Flatpak directly instead of this module,
@@ -315,7 +360,15 @@ in
 
   restartOnFailure = mkOption {
     type = with types; submodule restartOptions;
-    default = { enable = true; restartDelay = "60s"; exponentialBackoff = { enable = false; steps = 10; maxDelay = "1h"; }; };
+    default = {
+      enable = true;
+      restartDelay = "60s";
+      exponentialBackoff = {
+        enable = false;
+        steps = 10;
+        maxDelay = "1h";
+      };
+    };
     description = ''
       If enabled, restart the flatpak-managed-install service in case of failure.
       It is possible to specify a restart delay and an exponential backoff strategy.
@@ -329,6 +382,5 @@ in
       If enabled, uninstalls unused packages and runtimes.
       Defaults to `config.services.flatpak.uninstallUnmanaged`, or `false`.
     '';
-
   };
 }

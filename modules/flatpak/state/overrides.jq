@@ -1,107 +1,68 @@
 # Flatpak Overrides Merge Script
 #
-# This script merges Flatpak override configurations from multiple sources:
-# - base_overrides: Base configuration from override files
-# - active: Currently active overrides (existing state)
-# - old_state: Previous declarative state
-# - new_state: New declarative state
-# - has_override_file: Boolean flag indicating if an override file is being used
-# - file_was_removed: Boolean flag indicating if an override file was removed
+# Merge precedence (highest to lowest):
+# 1. overrides.settings     - declarative Nix settings
+# 2. overrides._fileSettings - settings from override files (parsed at evaluation time)
+# 3. active overrides        - existing override file in the install dir (direct edits)
 #
-# Merge Logic:
-# The script applies changes on top of base configuration while preserving
-# manual modifications that weren't part of the previous declarative state.
-#
-# For each entry, the merge formula is:
-# When `has_override_file` is true:
-#   base + new
-# When `file_was_removed` is true:
-#   base + new (authoritative merge, don't preserve "manual" changes from removed file)
-# When `has_override_file` is false and `file_was_removed` is false:
-#   base + (active - old) + new
-#
-# Where:
-# - base: Always preserved from override files
-# - active - old: Manual changes (active values not from old state)
-# - new: New declarative state values
-#
-# Special handling:
-# - If new value is a string: Completely replaces the merged array
-# - If new value is an array: Merges with base and filtered active values
-# - Arrays are deduplicated and sorted alphabetically
+# For each key in each section, the highest-priority source that defines the key wins.
+# When a setting or file is removed from the Nix config, the corresponding entry in the
+# active override file is preserved only if it was a direct user edit. Keys that
+# were previously written by nix-flatpak via overrides.files (_fileSettings) are retracted
+# when the file is removed from the config.
 #
 # Input parameters:
-# - $app_id: Application identifier
-# - $base_overrides: Base configuration from files
-# - $active: Currently active overrides
-# - $old_state: Previous state for this app
-# - $new_state: New state for this app
-# - $has_override_file: Boolean flag indicating if a file is present
-# - $file_was_removed: Boolean flag indicating if a file was removed from config
+# - $app_id:    Application identifier
+# - $active:    Currently active overrides from the override install dir
+# - $new_state: New declarative state (contains .overrides.settings and .overrides._fileSettings)
+# - $old_state: Previous declarative state (used to detect stale _fileSettings keys)
 
-# Convert entry value into array for consistent processing
-def values($value):
-  if ($value | type) == "string" then
-    $value | split(";") | map(select(. != "" and . != null))
+# Normalize a value to a semicolon-joined string for INI output.
+def normalize:
+  if type == "array" then
+    map(select(. != "" and . != null)) | join(";")
   else
-    ($value // [])
+    (. // "")
   end;
 
-# Extract state aliases for the current app
-# Support both new format (overrides.settings) and legacy format (overrides directly)
-($old_state.overrides.settings[$app_id] // $old_state.overrides[$app_id]) as $old
-| ($new_state.overrides.settings[$app_id] // $new_state.overrides[$app_id]) as $new
-# Process all sections that exist in base, active, or new state
-| $base_overrides + $active + $new
-| keys
+# Support both v2 format (overrides.settings) and legacy v1 format (overrides directly on app keys)
+($new_state.overrides.settings[$app_id] // $new_state.overrides[$app_id] // {}) as $settings
+| ($new_state.overrides._fileSettings[$app_id] // {}) as $file_settings
+| ($old_state.overrides._fileSettings[$app_id] // {}) as $old_file_settings
+
+# Collect all sections from all three sources
+| ([ ($settings | keys[]), ($file_settings | keys[]), ($active | keys[]) ] | unique)
 | map(
     . as $section
     | {
         "section_key": $section,
         "section_value": (
-          # Process all entries that exist in base, active, or new state for this section
-          ($base_overrides[$section] // {}) + ($active[$section] // {}) + ($new[$section] // {})
-          | keys
+          [ (($settings[$section] // {}) | keys[]),
+            (($file_settings[$section] // {}) | keys[]),
+            (($active[$section] // {}) | keys[]) ]
+          | unique
           | map(
               . as $entry
-              | {
-                  "entry_key": $entry,
-                  "entry_value": (
-                    # Extract value aliases for current entry
-                    $base_overrides[$section][$entry] as $base_value
-                    | $active[$section][$entry] as $active_value
-                    | $new[$section][$entry] as $new_value
-                    | $old[$section][$entry] as $old_value
-                    # Apply merge logic
-                    | if ($new_value | type) == "string" then
-                        # String values completely override arrays
-                        $new_value
-                      else
-                        # Array merge: authoritative if file exists or was removed, else preserve manual
-                        (if $has_override_file then
-                          values($base_value) + values($new_value)
-                        elif $file_was_removed then
-                          # File was removed - use authoritative merge, don't preserve "manual" changes
-                          values($base_value) + values($new_value)
-                        else
-                          values($base_value) + (values($active_value) - values($old_value)) + values($new_value)
-                        end)
-                        # Remove empty arrays and deduplicate/sort values
-                        | select(. != [])
-                        | map(select(. != ""))
-                        # Remove duplicates and empy values, while preserving the original value order in output configs
-                        | . as $arr | reduce .[] as $item ([]; if . | contains([$item]) then . else . + [$item] end)
-                        # Convert array back to Flatpak string format
-                        | join(";")
-                      end
-                  )
-                }
+              | ($settings[$section][$entry]) as $s
+              | ($file_settings[$section][$entry]) as $f
+              | ($active[$section][$entry]) as $a
+              # Strict precedence: settings wins, then file_settings, then active.
+              # Active keys that were previously written by _fileSettings (old_file_settings)
+              # but are no longer claimed by any Nix config are retracted, not preserved.
+              # Active keys from direct edits  are preserved.
+              | if $s != null then { "entry_key": $entry, "entry_value": ($s | normalize) }
+                elif $f != null then { "entry_key": $entry, "entry_value": ($f | normalize) }
+                elif $a != null and ($old_file_settings[$section][$entry] == null) then
+                  { "entry_key": $entry, "entry_value": ($a | normalize) }
+                else empty
+                end
             )
-          # Remove entries with empty values
-          | select(. != [])
+          | map(select(.entry_value != ""))
         )
       }
-  )[]
+    | select(.section_value | length > 0)
+  )
+| .[]
 
-# Generate the final INI-format overrides file
+# Generate the final INI overrides file
 | "[\(.section_key)]", (.section_value[] | "\(.entry_key)=\(.entry_value)"), ""

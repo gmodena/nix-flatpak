@@ -2,43 +2,57 @@
 
 # nix-flatpak
 
-Declarative flatpak manager for NixOS inspired by [declarative-flatpak](https://github.com/in-a-dil-emma/declarative-flatpak) and nix-darwin's [homebrew](https://github.com/LnL7/nix-darwin/blob/master/modules/homebrew.nix) module.
-NixOs and home-manager modules are provided for system wide or user flatpaks installation.
+Declarative flatpak manager for NixOS inspired by
+[declarative-flatpak](https://github.com/in-a-dil-emma/declarative-flatpak) and
+nix-darwin's
+[homebrew](https://github.com/LnL7/nix-darwin/blob/master/modules/homebrew.nix)
+module. NixOs and home-manager modules are provided for system wide or user
+flatpaks installation.
 
 ## Versioning
 
 We use Git tags and branches to manage versions:
 
 - **`0.7.0`** → Current stable release.
-- **`latest`** → Always points to the most recent stable version (`0.7.0` as of now).
+- **`latest`** → Always points to the most recent stable version (`0.7.0` as of
+  now).
 - **`main`** → Unstable, development branch.
 
-
-This project is released as a [flake](https://nixos.wiki/wiki/Flakes), and is published
-on [flakehub](https://flakehub.com/flake/gmodena/nix-flatpak) and [flakestry](https://flakestry.dev/flake/github/gmodena/nix-flatpak/0.7.0).
-
+This project is released as a [flake](https://nixos.wiki/wiki/Flakes), and is
+published on [flakehub](https://flakehub.com/flake/gmodena/nix-flatpak) and
+[flakestry](https://flakestry.dev/flake/github/gmodena/nix-flatpak/0.7.0).
 
 ## Background
 
-This project was inspired by  Martin Wimpress' [Blending NixOS with Flathub for friends and family](https://talks.nixcon.org/nixcon-2023/talk/MNUFFP/)
+This project was inspired by Martin Wimpress'
+[Blending NixOS with Flathub for friends and family](https://talks.nixcon.org/nixcon-2023/talk/MNUFFP/)
 talk at NixCon 2023.
 
+For implementation details and info about how this project came to be, see my
+[Flatpaks The Nix Way](https://talks.nixcon.org/nixcon-2025/talk/XJ9JLH/) talk
+at NixCon 2025.
+[slides](https://nowave.it/docs/nixcon25-flatpaks_the_nix_way.pdf).
 
-For implementation details and info about how this project came to be, see my [Flatpaks The Nix Way](https://talks.nixcon.org/nixcon-2025/talk/XJ9JLH/) talk at NixCon 2025. [slides](https://nowave.it/docs/nixcon25-flatpaks_the_nix_way.pdf).
+`nix-flatpak` follows a
+[convergent mode](https://flyingcircus.io/blog/thoughts-on-systems-management-methods/)
+approach to package management (described in
+[this thread](https://discourse.nixos.org/t/feature-discussion-declarative-flatpak-configuration/26767/2)):
+the target system state description is not exhaustive, and there's room for
+divergence across builds and rollbacks. For a number of desktop applications I
+want to be able to track the latest version, or allow them to auto update. For
+such applications, a convergent approach is a reasonable tradeoff wrt system
+reproducibility. YMMV.
 
-`nix-flatpak` follows a [convergent mode](https://flyingcircus.io/blog/thoughts-on-systems-management-methods/) approach to package management (described in [this thread](https://discourse.nixos.org/t/feature-discussion-declarative-flatpak-configuration/26767/2)):
-the target system state description is not exhaustive, and there's room for divergence across builds
-and rollbacks.
-For a number of desktop applications I want to be able to track the latest version, or allow them to auto update.
-For such applications, a convergent approach is a reasonable tradeoff wrt system reproducibility. YMMV.
-
-Flatpak applications are installed by systemd oneshot service triggered at system activation. Depending on
-the number of applications to install, this could increase activation time significantly. 
+Flatpak applications are installed by systemd oneshot service triggered at
+system activation. Depending on the number of applications to install, this
+could increase activation time significantly.
 
 ### installation
 
-Releases are tagged with [semantic versioning](https://semver.org/). Versions below `1.0.0` are considered early, development, releases.
-Users can track a version by passing its release tag as `ref`
+Releases are tagged with [semantic versioning](https://semver.org/). Versions
+below `1.0.0` are considered early, development, releases. Users can track a
+version by passing its release tag as `ref`
+
 ```nix
 ...
 nix-flatpak.url = "github:gmodena/nix-flatpak/?ref=v0.7.0";
@@ -46,6 +60,7 @@ nix-flatpak.url = "github:gmodena/nix-flatpak/?ref=v0.7.0";
 ```
 
 The `latest` tag will always point to the most recent release.
+
 ```nix
 ...
 nix-flatpak.url = "github:gmodena/nix-flatpak/?ref=latest";
@@ -53,6 +68,7 @@ nix-flatpak.url = "github:gmodena/nix-flatpak/?ref=latest";
 ```
 
 The `main` branch is considered unstable, and _might_ break installs.
+
 ```nix
 ...
 nix-flatpak.url = "github:gmodena/nix-flatpak/";
@@ -64,7 +80,11 @@ nix-flatpak.url = "github:gmodena/nix-flatpak/";
 Flakes are the recommended and officially supported installation method, but
 under the hood `nix-flatpak` is just a Nix module.
 
-`nix-flatpak` is not available in channels and needs to be manually downloaded and imported. Nixpkgs users can use the [fetchFromGithub](https://ryantm.github.io/nixpkgs/builders/fetchers/#fetchfromgithub) fetcher:
+`nix-flatpak` is not available in channels and needs to be manually downloaded
+and imported. Nixpkgs users can use the
+[fetchFromGithub](https://ryantm.github.io/nixpkgs/builders/fetchers/#fetchfromgithub)
+fetcher:
+
 ```
 pkgs.fetchFromGitHub {
     owner = "gmodena";
@@ -73,12 +93,15 @@ pkgs.fetchFromGitHub {
     hash = "sha256-7ZCulYUD9RmJIDULTRkGLSW1faMpDlPKcbWJLYHoXcs=";
   };
 ```
+
 The package `hash` can be generated with:
+
 ```bash
 nix-prefetch-github gmodena nix-flatpak --rev <rev>
 ```
 
 Example:
+
 ```nix
 let
   # Fetch nix-flatpak
@@ -106,22 +129,26 @@ in
   };
 ```
 
-A minimal config that can be built and tested in a NixOS VM (via `nix-build`) can be found
-at [configuration.nix](https://gist.github.com/gmodena/535f33651db735e39fdb74f7c24a56ac).
+A minimal config that can be built and tested in a NixOS VM (via `nix-build`)
+can be found at
+[configuration.nix](https://gist.github.com/gmodena/535f33651db735e39fdb74f7c24a56ac).
 
 ### Starter config example
-You can find an example configuration in [testing-base/flatpak.nix](https://github.com/gmodena/nix-flatpak/tree/main/testing-base).
 
+You can find an example configuration in
+[testing-base/flatpak.nix](https://github.com/gmodena/nix-flatpak/tree/main/testing-base).
 
 ## Getting Started
 
 Enable flatpak in `configuration.nix`:
+
 ```nix
 services.flatpak.enable = true;
 ```
 
-Import the module (`nixosModules.nix-flatpak` or `homeManagerModules.nix-flatpak`).
-Using flake, installing `nix-flatpak` as a NixOs module would look something like this:
+Import the module (`nixosModules.nix-flatpak` or
+`homeManagerModules.nix-flatpak`). Using flake, installing `nix-flatpak` as a
+NixOs module would look something like this:
 
 ```nix
 {
@@ -140,16 +167,24 @@ Using flake, installing `nix-flatpak` as a NixOs module would look something lik
     };
   };
 }
-
 ```
 
-See [flake.nix](https://github.com/gmodena/nix-flatpak/blob/main/testing-base/flake.nix) in [testing-base](https://github.com/gmodena/nix-flatpak/tree/main/testing-base) for examples of setting up `nix-flatpak` as a NixOs and HomeManager module.
+See
+[flake.nix](https://github.com/gmodena/nix-flatpak/blob/main/testing-base/flake.nix)
+in [testing-base](https://github.com/gmodena/nix-flatpak/tree/main/testing-base)
+for examples of setting up `nix-flatpak` as a NixOs and HomeManager module.
 
-## Notes on HomeManager 
-Depending on how config and inputs are derived `homeManagerModules` import can be flaky. Here's an example of how `homeManagerModules` is imported on my nixos systems config in [modules/home-manager/desktop/nixos/default.nix](https://github.com/gmodena/config/blob/5b3c1ce979881700f9f5ead88f2827f06143512f/modules/home-manager/desktop/nixos/default.nix#L17). `flake-inputs` is a special extra arg set in the repo `flake.nix`
+## Notes on HomeManager
+
+Depending on how config and inputs are derived `homeManagerModules` import can
+be flaky. Here's an example of how `homeManagerModules` is imported on my nixos
+systems config in
+[modules/home-manager/desktop/nixos/default.nix](https://github.com/gmodena/config/blob/5b3c1ce979881700f9f5ead88f2827f06143512f/modules/home-manager/desktop/nixos/default.nix#L17).
+`flake-inputs` is a special extra arg set in the repo `flake.nix`
 [mkNixosConfiguration](https://github.com/gmodena/config/blob/5b3c1ce979881700f9f5ead88f2827f06143512f/flake.nix#L29).
- 
+
 ### Remotes
+
 By default `nix-flatpak` will add the flathub remote. Remotes can be manually
 configured via the `services.flatpak.remotes` option:
 
@@ -158,48 +193,66 @@ services.flatpak.remotes = [{
   name = "flathub-beta"; location = "https://flathub.org/beta-repo/flathub-beta.flatpakrepo";
 }];
 ```
-Note that this declaration will override the default remote config value (`flathub`).
-If you want to keep using `flathub`, you should explicitly declare it in the
-`services.flatpak.remotes` option.
 
-Alternatively, it is possible to merge declared remotes with the default one with `lib.mkDefaultOption`.
+Note that this declaration will override the default remote config value
+(`flathub`). If you want to keep using `flathub`, you should explicitly declare
+it in the `services.flatpak.remotes` option.
+
+Alternatively, it is possible to merge declared remotes with the default one
+with `lib.mkDefaultOption`.
+
 ```nix
-  services.flatpak.remotes = lib.mkOptionDefault [{
-    name = "flathub-beta";
-    location = "https://flathub.org/beta-repo/flathub-beta.flatpakrepo";
-  }];
+services.flatpak.remotes = lib.mkOptionDefault [{
+  name = "flathub-beta";
+  location = "https://flathub.org/beta-repo/flathub-beta.flatpakrepo";
+}];
 ```
 
 ### Packages
+
 Declare packages to install with:
+
 ```nix
-  services.flatpak.packages = [
-    { appId = "com.brave.Browser"; origin = "flathub";  }
-    "com.obsproject.Studio"
-    "im.riot.Riot"
-  ];
+services.flatpak.packages = [
+  { appId = "com.brave.Browser"; origin = "flathub";  }
+  "com.obsproject.Studio"
+  "im.riot.Riot"
+];
 ```
+
 You can pin a specific commit setting `commit=<hash>` attribute.
 
 Rebuild your system (or home-manager) for changes to take place.
 
 #### Flatpakref files
-[Flatpakref](https://docs.flatpak.org/en/latest/repositories.html#flatpakref-files) files can be installed by setting the `flatpakref` attribute to :
+
+[Flatpakref](https://docs.flatpak.org/en/latest/repositories.html#flatpakref-files)
+files can be installed by setting the `flatpakref` attribute to :
+
 ```nix
-  services.flatpak.packages = [
-    { flatpakref = "<uri>"; sha256="<hash>"; }
-  ];
+services.flatpak.packages = [
+  { flatpakref = "<uri>"; sha256="<hash>"; }
+];
 ```
 
-A `sha256` hash is required for  the flatpakref file. This can be generated with `nix-prefetch-url <uri>`.
-Omitting the `sha256` attribute will require an `impure` evaluation of the flake.
+A `sha256` hash is required for the flatpakref file. This can be generated with
+`nix-prefetch-url <uri>`. Omitting the `sha256` attribute will require an
+`impure` evaluation of the flake.
 
-When installing an application from a `flatpakref`, the application remote will be determined as follows:
-1. If the package does not specify an origin, use the remote name suggested by the flatpakref in `SuggestRemoteName`.
-2. If the flatpakref does not suggest a remote name, sanitize the flatpakref `Name` key with the same algo flatpak implements in [create_origin_remote_config()](https://github.com/flatpak/flatpak/blob/b730771bd793b34fb63fcbf292beed35476e5b92/common/flatpak-dir.c#L14423).
+When installing an application from a `flatpakref`, the application remote will
+be determined as follows:
+
+1. If the package does not specify an origin, use the remote name suggested by
+   the flatpakref in `SuggestRemoteName`.
+2. If the flatpakref does not suggest a remote name, sanitize the flatpakref
+   `Name` key with the same algo flatpak implements in
+   [create_origin_remote_config()](https://github.com/flatpak/flatpak/blob/b730771bd793b34fb63fcbf292beed35476e5b92/common/flatpak-dir.c#L14423).
 
 #### Flatpak bundles
-Bundle files (`.flatpak`) can be installed directly by pointing `bundle` at a URI and providing a matching `sha256`:
+
+Bundle files (`.flatpak`) can be installed directly by pointing `bundle` at a
+URI and providing a matching `sha256`:
+
 ```nix
 services.flatpak.packages = [
   rec {
@@ -214,6 +267,7 @@ services.flatpak.packages = [
 ```
 
 You can also install a local bundle from disk:
+
 ```nix
 services.flatpak.packages = [
   {
@@ -226,69 +280,86 @@ services.flatpak.packages = [
 
 ##### Unmanaged packages and remotes
 
-By default `nix-flatpak` will only manage (install/uninstall/update) packages declared in the
-`services.flatpak.packages` and repositories declared in `services.flatpak.remotes`.
-Flatpak packages and repositories installed by the command line of app stores won't be affected.
+By default `nix-flatpak` will only manage (install/uninstall/update) packages
+declared in the `services.flatpak.packages` and repositories declared in
+`services.flatpak.remotes`. Flatpak packages and repositories installed by the
+command line of app stores won't be affected.
 
-Set `services.flatpak.uninstallUnmanaged = true` to alter this behaviour, and have `nix-flatpak` manage the
-lifecycle of all flatpaks packages and repositories.
+Set `services.flatpak.uninstallUnmanaged = true` to alter this behaviour, and
+have `nix-flatpak` manage the lifecycle of all flatpaks packages and
+repositories.
 
-Note that `services.flatpak.uninstallUnmanaged` will only affect a given `system` of `user` installation
-target. If `nix-flatpak` is installed as a HomeManager module all packages/remotes will be managed
-in a `user` installation. Packages/remotes installed system-wide won't be affected
-by `services.flatpak.uninstallUnmanaged`.
+Note that `services.flatpak.uninstallUnmanaged` will only affect a given
+`system` of `user` installation target. If `nix-flatpak` is installed as a
+HomeManager module all packages/remotes will be managed in a `user`
+installation. Packages/remotes installed system-wide won't be affected by
+`services.flatpak.uninstallUnmanaged`.
 
-Similarly, when `nix-flatpak` is installed as a NixOs module, only system-wide config will
-be affected.
+Similarly, when `nix-flatpak` is installed as a NixOs module, only system-wide
+config will be affected.
 
 ### Updates
 
 Set
+
 ```nix
 services.flatpak.update.onActivation = true;
 ```
-to enable updates at system activation. The default is `false`
-so that repeated invocations of `nixos-rebuild switch` are idempotent. Applications 
-pinned to a specific commit hash will not be updated.
 
-Periodic updates can be enabled  by setting:
+to enable updates at system activation. The default is `false` so that repeated
+invocations of `nixos-rebuild switch` are idempotent. Applications pinned to a
+specific commit hash will not be updated.
+
+Periodic updates can be enabled by setting:
+
 ```nix
 services.flatpak.update.auto = {
   enable = true;
   onCalendar = "weekly"; # Default value
 };
 ```
+
 Auto updates trigger on system activation.
 
-Under the hood, updates are scheduled by realtime systemd timers. `onCalendar` accepts systemd's
-`update.auto.onCalendar` expressions. Timers are persisted across sleep / resume cycles.
-See https://wiki.archlinux.org/title/systemd/Timers for more information. 
+Under the hood, updates are scheduled by realtime systemd timers. `onCalendar`
+accepts systemd's `update.auto.onCalendar` expressions. Timers are persisted
+across sleep / resume cycles. See
+https://wiki.archlinux.org/title/systemd/Timers for more information.
 
 ### Storage
-Flatpaks are stored out of nix store at `/var/lib/flatpak` and `${HOME}/.local/share/flatpak/` for system
-(`nixosModules`) and user (`homeManagerModules`) installation respectively. 
-Flatpaks installation are not generational: upon a system rebuild and rollbacks, changes in packages declaration
-will result in downloading applications anew.
 
-Keeping flatpaks and nix store orthogonal is an explicit design choice, dictate by my use cases:
+Flatpaks are stored out of nix store at `/var/lib/flatpak` and
+`${HOME}/.local/share/flatpak/` for system (`nixosModules`) and user
+(`homeManagerModules`) installation respectively. Flatpaks installation are not
+generational: upon a system rebuild and rollbacks, changes in packages
+declaration will result in downloading applications anew.
+
+Keeping flatpaks and nix store orthogonal is an explicit design choice, dictate
+by my use cases:
+
 1. I want to track the latest version of all installed applications.
 2. I am happy to trade network for storage.
 
 YMMV.
 
-If you want an alternative approach with transactional package installation, [declarative-flatpak](https://github.com/in-a-dil-emma/declarative-flatpak)
+If you want an alternative approach with transactional package installation,
+[declarative-flatpak](https://github.com/in-a-dil-emma/declarative-flatpak)
 might be a better fit.
 
 ### Overrides
 
-Flatpak overrides allow you to modify application permissions and environment variables. `nix-flatpak` provides two ways to manage overrides: inline `settings` and external `files`.
+Flatpak overrides allow you to modify application permissions and environment
+variables. `nix-flatpak` provides two ways to manage overrides: inline
+`settings` and external `files`.
 
-**WARNING**: using these settings will overwrite system/user flatpak override files and could cause data loss. Backup
-your files before enabling `.settings` and/or `.files`.
+**WARNING: using these settings will overwrite system/user flatpak override
+files and could cause data loss. Backup your files before enabling `.settings`
+and/or `.files`.**
 
-#### Settings (inline configuration)
+#### Inline configuration
 
-Use `services.flatpak.overrides.settings` to declare overrides directly in your nix configuration:
+Use `services.flatpak.overrides.settings` to declare overrides directly in your
+nix configuration:
 
 ```nix
 {
@@ -322,25 +393,20 @@ Use `services.flatpak.overrides.settings` to declare overrides directly in your 
 }
 ```
 
-**Backwards compatibility:** The legacy  (`nix-flatpak` <= 0.7) format `services.flatpak.overrides = { "app.id" = {...}; }` (without the `.settings` wrapper) is still supported.
+**Backwards compatibility:** The legacy (`nix-flatpak` <= 0.7) format
+`services.flatpak.overrides = { "app.id" = {...}; }` (without the `.settings`
+wrapper) is still supported, but will be removed in the future.
 
-#### Files (external override files)
+#### Eexternal override files
 
-Use `services.flatpak.overrides.files` to load overrides from external files. This is useful for:
-- Sharing override configurations across machines
-- Managing complex overrides separately from your nix configuration
-- Using existing Flatpak override files
+Use `services.flatpak.overrides.files` to load overrides from external INI
+files. This is useful for sharing override configurations across machines,
+managing complex overrides separately from your nix configuration and/or using
+existing Flatpak override files. See
+[https://github.com/gmodena/nix-flatpak/issues/82][!82].
 
-```nix
-{
-  services.flatpak.overrides.files = [
-    "/path/to/overrides.d/com.visualstudio.code"
-    "/path/to/overrides.d/org.gnome.Terminal"
-  ];
-}
-```
-
-The file name must match the application ID (e.g., `com.visualstudio.code`). Files should be in standard Flatpak override INI format:
+The file name must match the application ID (e.g., `com.visualstudio.code`).
+Files should be in standard Flatpak override INI format:
 
 ```ini
 [Context]
@@ -352,7 +418,9 @@ GTK_THEME=Adwaita:dark
 
 #### Combining settings and files
 
-When both `settings` and `files` are specified for the same application, they are merged. Values from `settings` take precedence over values from `files`, and both are merged with any externally applied overrides already on disk.
+When both `settings` and `files` are specified for the same application, they
+are merged. Values from `settings` take precedence over values from `files`, and
+both are merged with any externally applied overrides already on disk.
 
 ```nix
 {
@@ -366,31 +434,107 @@ When both `settings` and `files` are specified for the same application, they ar
 }
 ```
 
-#### Deleting orphaned override files
+#### Write mode
 
-**Bugs of incorrect use of this option can result in data loss Make sure your overrides are backed up before enabling this option.**
+The `writeMode` option controls how `nix-flatpak` writes override files to disk.
+It accepts two values:
 
-By default, when you remove an override from your nix configuration, the corresponding file in the flatpak overrides directory is preserved on disk. This behaviour is controlled by the `deleteOrphanedFiles` option:
+- `"merge"` (default): at activation time, existing override files on disk are
+  read and merged with the nix-managed settings. Direct user edits to keys not
+  declared in nix are preserved across generations.
+- `"replace"`: the complete override file for each application is computed at
+  evaluation time as a pure store derivation. At activation time the precomputed
+  file is copied to the overrides directory. `nix-flatpak` fully owns the file.
+  Any direct user edits are overwritten on the next activation.
 
 ```nix
 {
-  services.flatpak.overrides.deleteOrphanedFiles = false; # Default
+  services.flatpak.overrides.writeMode = "merge";   # default
 }
 ```
 
-| `deleteOrphanedFiles` | Override removed from config | Result |
-|-----------------------|------------------------------|--------|
-| `false` (default)     | Yes                          | Override file **preserved** on disk |
-| `true`                | Yes                          | Override file **deleted** from disk |
+##### Evaluation
 
-When `deleteOrphanedFiles = true`, nix-flatpak scans the actual overrides directory and removes any files that are not declared in the current configuration (either in `settings` or `files`). This ensures a clean state where only managed overrides exist.
+When `overrides.files` contains plain string paths (paths outside the Nix
+store), `nix-flatpak` must read them from the filesystem at evaluation time,
+which is an impure operation. This applies to both write modes, because the
+state file always parses `overrides.files` at eval time regardless of
+`writeMode`.
 
-If you previously had `deleteOrphanedFiles = false`, swithing to `deleteOrphanedFiles = true` will delete all override files removed from the current config, that where present in the previous generation. If override files accumulated over previous generations, a manual cleanup of all unmanaged files will be necessary.
+Such configurations require passing `--impure` to `nixos-rebuild`:
+
+```nix
+{
+  services.flatpak.overrides = {
+    files = [
+      "/home/user/dotfiles/overrides/com.visualstudio.code" 
+    ];
+  };
+}
+```
+
+```bash
+sudo nixos-rebuild switch --impure
+```
+
+To avoid `--impure`, use Nix path literals instead of strings for
+`overrides.files`. Path literals are copied into the Nix store during
+evaluation, making the entire configuration reproducible:
+
+```nix
+{
+  services.flatpak.overrides = {
+    files = [
+      ./overrides/com.visualstudio.code
+      ./overrides/org.gnome.Terminal
+    ];
+  };
+}
+```
+
+With `writeMode = "replace"` and store-path files, the merged override content
+for each application is fully determined at evaluation time. No reading of
+on-disk override files occurs at activation. This is the most reproducible
+configuration.
+
+Note: `writeMode = "replace"` with only `settings` (no `files`) is always pure
+and never requires `--impure`.
+
+#### Deleting orphaned override files
+
+**Bugs of incorrect use of this option can result in data loss. Make sure your
+overrides are backed up before enabling this option.**
+
+By default, when you remove an override from your nix configuration, the
+corresponding file in the flatpak overrides directory is preserved on disk. This
+behaviour is controlled by the `pruneUnmanagedOverrides` option:
+
+```nix
+{
+  services.flatpak.overrides.pruneUnmanagedOverrides = false; # Default
+}
+```
+
+When `pruneUnmanagedOverrides = true`, nix-flatpak scans the actual overrides
+directory and removes any files that are not declared in the current
+configuration (either in `settings` or `files`). This ensures a clean state
+where only managed overrides exist.
+
+If you previously had `pruneUnmanagedOverrides = false`, switching to
+`pruneUnmanagedOverrides = true` will delete all override files removed from the
+current config that were present in the previous generation. If override files
+accumulated over previous generations, a manual cleanup of all unmanaged files
+will be necessary.
 
 ### Systemd unit retry on error
-On flaky network connections the `nix-flatpak` installer script may fail. 
 
-The `restartOnFailure` option controls the behavior of the flatpak-managed-install service when it encounters a failure. As of 0.6.0 it is enabled by default, and wraps systemd APIs. It's configuration can be modified by setting:
+On flaky network connections the `nix-flatpak` installer script may fail.
+
+The `restartOnFailure` option controls the behavior of the
+flatpak-managed-install service when it encounters a failure. As of 0.6.0 it is
+enabled by default, and wraps systemd APIs. It's configuration can be modified
+by setting:
+
 ```nix
 restartOnFailure = {
   enable = true;
@@ -411,13 +555,20 @@ A couple of things to be aware of when working with `nix-flatpak`.
 
 ## Infinite recursion in home-manager imports
 
-Users have reported an infinite recursion stacktrace when importing an home-manager module outside of where home-manager
-itself was imported.
+Users have reported an infinite recursion stacktrace when importing an
+home-manager module outside of where home-manager itself was imported.
 
-To work around this issue, you should avoid nesting home-manager modules. This means that when you are structuring your configuration, make sure that you do not have home-manager modules imported within each other in a way that could lead to circular imports.
+To work around this issue, you should avoid nesting home-manager modules. This
+means that when you are structuring your configuration, make sure that you do
+not have home-manager modules imported within each other in a way that could
+lead to circular imports.
 
-You can follow the discussions and updates on issue [#25](https://github.com/gmodena/nix-flatpak/issues/25) to stay informed about any resolutions or workarounds.
+You can follow the discussions and updates on issue
+[#25](https://github.com/gmodena/nix-flatpak/issues/25) to stay informed about
+any resolutions or workarounds.
 
 ## Q&A and support
 
-For further support questions and common issues on how to integrate and set up `nix-flatpak` on your system, please consult the [Q&A discussions page](https://github.com/gmodena/nix-flatpak/discussions/categories/q-a).
+For further support questions and common issues on how to integrate and set up
+`nix-flatpak` on your system, please consult the
+[Q&A discussions page](https://github.com/gmodena/nix-flatpak/discussions/categories/q-a).

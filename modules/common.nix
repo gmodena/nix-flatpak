@@ -30,7 +30,7 @@ rec {
   # files that were written by an older version of nix-flatpak and have not yet been migrated.
   hasLegacyOverrides = cfg:
     let
-      newFormatKeys = [ "settings" "files" "deleteOrphanedFiles" ];
+      newFormatKeys = [ "settings" "files" "pruneUnmanagedOverrides" "writeMode" ];
       overrideKeys = builtins.attrNames (cfg.overrides or {});
       legacyKeys = builtins.filter (k: !(builtins.elem k newFormatKeys)) overrideKeys;
     in
