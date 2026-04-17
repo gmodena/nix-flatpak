@@ -260,9 +260,9 @@
     ${pkgs.jq}/bin/jq -r -n \
       --argjson old "$OLD_STATE" \
       --argjson new "$NEW_STATE" \
-      '[ (($new.overrides.settings // $new.overrides) | keys[]),
+      '[ (if ($new.version // 1) >= 2 then ($new.overrides.settings // {}) else ($new.overrides // {}) end | keys[]),
          (($new.overrides._fileSettings // {}) | keys[]),
-         (($old.overrides.settings // $old.overrides) | keys[]),
+         (if ($old.version // 1) >= 2 then ($old.overrides.settings // {}) else ($old.overrides // {}) end | keys[]),
          ($old.overrides.files // [] | map(split("/") | last) | .[]) ] | unique[]' \
       | while read -r APP_ID; do
         OVERRIDES_PATH=${overridesDir}/$APP_ID

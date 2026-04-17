@@ -775,4 +775,40 @@ in
       expr = lib.strings.hasInfix ''$old.overrides[$app_id]'' installWithReplaceModeAndPrune.mkOverridesCmd;
       expected = true;
     };
+
+    testNoMetaKeyLeakWhenOldStateV2LacksSettingsKey = {
+      expr = builtins.readFile (pkgs.runCommand "app-ids-no-meta-keys" {
+          buildInputs = [pkgs.jq];
+        } ''
+          NEW_STATE='${builtins.toJSON {
+            version = 2;
+            overrides = {
+              settings = {};
+              files = ["/path/org.gnome.gedit"];
+              pruneUnmanagedOverrides = false;
+              writeMode = "merge";
+              _fileSettings."org.gnome.gedit" = {Context.sockets = "wayland";};
+            };
+          }}'
+          # Old state is v2-format but missing the `settings` key — the bug trigger.
+          OLD_STATE='${builtins.toJSON {
+            version = 2;
+            overrides = {
+              files = ["/path/org.gnome.gedit"];
+              pruneUnmanagedOverrides = false;
+              writeMode = "merge";
+              _fileSettings."org.gnome.gedit" = {Context.sockets = "wayland";};
+            };
+          }}'
+          APP_IDS=$(${pkgs.jq}/bin/jq -r -n \
+            --argjson old "$OLD_STATE" \
+            --argjson new "$NEW_STATE" \
+            '[ (if ($new.version // 1) >= 2 then ($new.overrides.settings // {}) else ($new.overrides // {}) end | keys[]),
+               (($new.overrides._fileSettings // {}) | keys[]),
+               (if ($old.version // 1) >= 2 then ($old.overrides.settings // {}) else ($old.overrides // {}) end | keys[]),
+               ($old.overrides.files // [] | map(split("/") | last) | .[]) ] | unique[]')
+          echo -n "$APP_IDS" > $out
+        '');
+      expected = "org.gnome.gedit";
+    };
   }
