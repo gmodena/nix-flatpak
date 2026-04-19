@@ -526,6 +526,36 @@ current config that were present in the previous generation. If override files
 accumulated over previous generations, a manual cleanup of all unmanaged files
 will be necessary.
 
+#### Downgrading to a release prior to v2 state format
+
+`nix-flatpak` uses an internal state file to track managed overrides across
+activations. Releases `> 0.7.0` support `overrides.settings` and
+`overrides.files` write a v2 state file. If you downgrade to an older release
+that only understands the v1 flat `overrides` format, the older release will
+misinterpret its meta-keys (`settings`, `files`, `_fileSettings`,
+`pruneUnmanagedOverrides`, `writeMode`) as Flatpak app ids.
+
+On the first activation after the downgrade, the older release will create
+spurious override files with those names in your flatpak overrides directory
+(`/var/lib/flatpak/overrides` or `~/.local/share/flatpak/overrides`). These
+files have no effect (Flatpak ignores filenames that are not valid
+reverse-domain app IDs) but they are left on disk as clutter.
+
+**Your real app override files are not affected.** To clean up the stray files,
+run:
+
+```bash
+# For a user (home-manager) installation
+for name in settings files _fileSettings pruneUnmanagedOverrides writeMode; do
+  rm -f "${XDG_DATA_HOME:-$HOME/.local/share}/flatpak/overrides/$name"
+done
+
+# For a system (NixOS) installation
+for name in settings files _fileSettings pruneUnmanagedOverrides writeMode; do
+  sudo rm -f "/var/lib/flatpak/overrides/$name"
+done
+```
+
 ### Systemd unit retry on error
 
 On flaky network connections the `nix-flatpak` installer script may fail.
