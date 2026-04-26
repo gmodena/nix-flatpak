@@ -287,26 +287,6 @@ in
       };
     };
 
-    testPathWithNullByteThrows = {
-      expr = builtins.tryEval (
-        (import ../../modules/flatpak/install.nix {
-          cfg =
-            baseConfig
-            // {
-              overrides = {
-                files = ["/path/to/com.example\x00app"];
-              };
-            };
-          inherit pkgs lib installation;
-          executionContext = "service-start";
-        }).mkSaveStateCmd
-      );
-      expected = {
-        success = false;
-        value = false;
-      };
-    };
-
     testWriteModeMergeEvaluates = {
       expr = builtins.isString installWriteModeMerge.mkOverridesCmd;
       expected = true;

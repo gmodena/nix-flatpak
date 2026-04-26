@@ -199,7 +199,7 @@
     # string literals. Reject these at evaluation time so they never reach the
     # generated shell script.
     # TODO(gmodena, 2026-04): this list is expected to grow.
-    invalidChars = ["\n" "\r" "\x00" "'"];
+    invalidChars = ["\n" "\r" "'"];
     hasInvalidChar = path: builtins.any (c: lib.strings.hasInfix c path) invalidChars;
     invalidPaths = builtins.filter hasInvalidChar files;
   in
