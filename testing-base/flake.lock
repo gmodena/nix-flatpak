@@ -11,6 +11,27 @@
       },
       "parent": []
     },
+    "hjem": {
+      "inputs": {
+        "nix-darwin": [],
+        "nixpkgs": [
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1777061801,
+        "narHash": "sha256-a0O56qWfPEKe0mBKgvcQL5UDpWmon70AKJspHNkEJV8=",
+        "owner": "feel-co",
+        "repo": "hjem",
+        "rev": "35c2158ba101d7b42b05debfcb169ba32dad3bbc",
+        "type": "github"
+      },
+      "original": {
+        "owner": "feel-co",
+        "repo": "hjem",
+        "type": "github"
+      }
+    },
     "home-manager": {
       "inputs": {
         "nixpkgs": [
@@ -51,6 +72,7 @@
     "root": {
       "inputs": {
         "flatpaks": "flatpaks",
+        "hjem": "hjem",
         "home-manager": "home-manager",
         "nixpkgs": "nixpkgs"
       }
