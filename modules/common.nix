@@ -1,4 +1,4 @@
-{ lib, config }:
+{ lib }:
 rec {
   mkExponentialBackoff = cfg:
     if cfg.restartOnFailure.exponentialBackoff.enable then {
