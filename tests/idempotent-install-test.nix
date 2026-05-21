@@ -50,7 +50,7 @@ else
       ${pkgs.flatpak}/bin/flatpak --user --noninteractive update --commit="abc123" org.gnome.gedit
       : # No operation if no install command needs to run.
     elif false; then
-      ${pkgs.flatpak}/bin/flatpak --user --noninteractive install  $(if ${pkgs.flatpak}/bin/flatpak --user list --app --columns=application | ${pkgs.gnugrep}/bin/grep -q org.gnome.gedit; then
+      ${pkgs.flatpak}/bin/flatpak --user --noninteractive install  $(if ${pkgs.flatpak}/bin/flatpak --user list --app --columns=application | ${pkgs.gnugrep}/bin/grep -q "^org.gnome.gedit$"; then
     echo "gedit-origin org.gnome.gedit"
 else
     echo "--from ${flatpakrefUrl}"
@@ -61,7 +61,7 @@ ${pkgs.flatpak}/bin/flatpak --user --noninteractive update --commit="abc123" org
       : # No operation if no install command needs to run.
     fi
   else
-    ${pkgs.flatpak}/bin/flatpak --user --noninteractive install  $(if ${pkgs.flatpak}/bin/flatpak --user list --app --columns=application | ${pkgs.gnugrep}/bin/grep -q org.gnome.gedit; then
+    ${pkgs.flatpak}/bin/flatpak --user --noninteractive install  $(if ${pkgs.flatpak}/bin/flatpak --user list --app --columns=application | ${pkgs.gnugrep}/bin/grep -q "^org.gnome.gedit$"; then
     echo "gedit-origin org.gnome.gedit"
 else
     echo "--from ${flatpakrefUrl}"

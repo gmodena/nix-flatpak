@@ -69,7 +69,7 @@ let
             parsed = builtins.filter (line: line != null) (map (line: builtins.match "(.*)=(.*)" (builtins.toString line)) lines);
 
             # Convert the list of key-value pairs into an attrset
-            attrSet = builtins.listToAttrs (map (pair: { name = builtins.elemAt pair 0; value = builtins.elemAt pair 1; }) parsed);
+            attrSet = builtins.listToAttrs (map (pair: { name = lib.strings.trim (builtins.elemAt pair 0); value = lib.strings.trim (builtins.elemAt pair 1); }) parsed);
           in
           cache // { ${(sanitizeUrl flatpakref)} = attrSet; };
     in

@@ -19,6 +19,16 @@ let
       DeployCollectionID = "org.gnome.Apps";
     };
   };
+  spacedFixturePath = "file://${pwd}/fixtures/spaced.flatpakref";
+  expectedSpacedFixtureAttrSet = {
+    ${ref.sanitizeUrl spacedFixturePath} = {
+      Name = "test.demo.App";
+      Branch = "test.branch";
+      Title = "Test App With Spaces";
+      SuggestRemoteName = "test-remote";
+      Url = "https://example.com/flatpak/repo/";
+    };
+  };
 in
 runTests {
   testSanitizeUrl = {
@@ -74,5 +84,10 @@ runTests {
   testFlatpakrefToAttrSetWithSha256 = {
     expr = ref.flatpakrefToAttrSet { flatpakref = fixturePath; sha256 = fixtureHash; } { };
     expected = expectedFixtureAttrSet;
+  };
+
+  testFlatpakrefToAttrSetWithSpaces = {
+    expr = ref.flatpakrefToAttrSet { flatpakref = spacedFixturePath; sha256 = null; } { };
+    expected = expectedSpacedFixtureAttrSet;
   };
 }
