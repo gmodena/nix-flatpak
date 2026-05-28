@@ -1,0 +1,6 @@
+[Flatpak Ref]
+Name = test.demo.App
+Branch = test.branch
+Title = Test App With Spaces
+SuggestRemoteName = test-remote
+Url = https://example.com/flatpak/repo/

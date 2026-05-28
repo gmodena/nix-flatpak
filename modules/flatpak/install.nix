@@ -118,7 +118,7 @@
     appId = flatpakrefCache.${(utils.sanitizeUrl flatpakrefUrl)}.Name;
     origin = utils.getRemoteNameFromFlatpakref null flatpakrefCache.${(utils.sanitizeUrl flatpakrefUrl)};
   in ''
-    $(if ${pkgs.flatpak}/bin/flatpak --${installation} list --app --columns=application | ${pkgs.gnugrep}/bin/grep -q ${appId}; then
+    $(if ${pkgs.flatpak}/bin/flatpak --${installation} list --app --columns=application | ${pkgs.gnugrep}/bin/grep -q "^${appId}$"; then
         echo "${origin} ${appId}"
     else
         echo "--from ${flatpakrefUrl}"
