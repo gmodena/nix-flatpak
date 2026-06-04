@@ -46,7 +46,7 @@ with lib; let
       origin = mkOption {
         type = types.str;
         default = config.services.flatpak.defaultOrigin;
-        description = "App repository origin. (default: Flathub)";
+        description = "App repository origin. (default: flathub)";
       };
 
       flatpakref = mkOption {
