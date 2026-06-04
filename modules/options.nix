@@ -278,7 +278,7 @@ in {
     '';
   };
 
-  defaultRemote = mkOption {
+  defaultOrigin = mkOption {
     type = types.str;
     description = "Default repo to install flatpak(s) from.";
     default = "flathub";

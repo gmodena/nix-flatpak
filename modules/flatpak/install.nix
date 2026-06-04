@@ -66,7 +66,7 @@
         origin =
           if utils.isFlatpakref package
           then utils.getRemoteNameFromFlatpakref null flatpakrefCache.${utils.sanitizeUrl package.flatpakref}
-          else package.origin ? cfg.defaultRemote;
+          else package.origin ? cfg.defaultOrigin;
       in {
         appId = appId;
         origin = origin;
@@ -381,7 +381,7 @@
 
   flatpakInstallCmd = installation: update: {
     appId,
-    origin ? cfg.defaultRemote,
+    origin ? cfg.defaultOrigin,
     commit ? null,
     flatpakref ? null,
     bundle ? null,
