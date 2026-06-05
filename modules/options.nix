@@ -45,8 +45,8 @@ with lib; let
 
       origin = mkOption {
         type = types.str;
-        default = "flathub";
-        description = "App repository origin (default: flathub).";
+        default = config.services.flatpak.defaultOrigin;
+        description = "App repository origin. (default: flathub)";
       };
 
       flatpakref = mkOption {
@@ -276,6 +276,12 @@ in {
       # Flathub is the default initialized by this flake.
       [{ name = "flathub"; location = "https://dl.flathub.org/repo/flathub.flatpakrepo"; }]
     '';
+  };
+
+  defaultOrigin = mkOption {
+    type = types.str;
+    description = "Default repo to install flatpak(s) from.";
+    default = "flathub";
   };
 
   overrides = mkOption {
