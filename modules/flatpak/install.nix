@@ -66,7 +66,7 @@
         origin =
           if utils.isFlatpakref package
           then utils.getRemoteNameFromFlatpakref null flatpakrefCache.${utils.sanitizeUrl package.flatpakref}
-          else package.origin ? cfg.defaultOrigin;
+          else package.origin or cfg.defaultOrigin;
       in {
         appId = appId;
         origin = origin;
