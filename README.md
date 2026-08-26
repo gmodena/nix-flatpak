@@ -146,8 +146,8 @@ Enable flatpak in `configuration.nix`:
 services.flatpak.enable = true;
 ```
 
-Import the module (`nixosModules.nix-flatpak` or
-`homeManagerModules.nix-flatpak`). Using flake, installing `nix-flatpak` as a
+Import the module (`nixosModules.default` or
+`homeModules.default`). Using flake, installing `nix-flatpak` as a
 NixOs module would look something like this:
 
 ```nix
@@ -160,7 +160,7 @@ NixOs module would look something like this:
   outputs = { nix-flatpak, ... }: {
     nixosConfigurations.<host> = nixpkgs.lib.nixosSystem {
       modules = [
-        nix-flatpak.nixosModules.nix-flatpak
+        nix-flatpak.nixosModules.default
 
         ./configuration.nix
       ];
@@ -176,8 +176,8 @@ for examples of setting up `nix-flatpak` as a NixOs and HomeManager module.
 
 ## Notes on HomeManager
 
-Depending on how config and inputs are derived `homeManagerModules` import can
-be flaky. Here's an example of how `homeManagerModules` is imported on my nixos
+Depending on how config and inputs are derived `homeModules` import can
+be flaky. Here's an example of how `homeModules` is imported on my nixos
 systems config in
 [modules/home-manager/desktop/nixos/default.nix](https://github.com/gmodena/config/blob/5b3c1ce979881700f9f5ead88f2827f06143512f/modules/home-manager/desktop/nixos/default.nix#L17).
 `flake-inputs` is a special extra arg set in the repo `flake.nix`
@@ -330,7 +330,7 @@ https://wiki.archlinux.org/title/systemd/Timers for more information.
 
 Flatpaks are stored out of nix store at `/var/lib/flatpak` and
 `${HOME}/.local/share/flatpak/` for system (`nixosModules`) and user
-(`homeManagerModules`) installation respectively. Flatpaks installation are not
+(`homeModules`) installation respectively. Flatpaks installation are not
 generational: upon a system rebuild and rollbacks, changes in packages
 declaration will result in downloading applications anew.
 
