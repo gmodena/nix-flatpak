@@ -5,6 +5,5 @@
     {
       nixosModules = { nix-flatpak = ./modules/nixos.nix; };
       homeManagerModules = { nix-flatpak = ./modules/home-manager.nix; };
-      hjemModules = { nix-flatpak = ./modules/hjem.nix; };
     };
 }
