@@ -1,7 +1,7 @@
 { config, lib, pkgs, ... }@args:
 let
   inherit (config.systemd.user) systemctlPath;
-  helpers = import ./common.nix { inherit lib; };
+  helpers = import ./common.nix { inherit lib config; };
   cfg = helpers.warnDeprecated config.services.flatpak;
   installation = "user";
 in
