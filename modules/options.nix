@@ -290,8 +290,8 @@ in {
     # always receives a consistent submodule value.
     type = with types;
       coercedTo
-      (addCheck (attrsOf (attrsOf (attrsOf (either str (listOf str)))))
-        (v: !(v ? settings || v ? files || v ? pruneUnmanagedOverrides)))
+      (addCheck attrs
+        (v: !(v ? settings || v ? files || v ? pruneUnmanagedOverrides || v ? writeMode)))
       (legacySettings: {settings = legacySettings;})
       (submodule overridesOptions);
     default = {};
