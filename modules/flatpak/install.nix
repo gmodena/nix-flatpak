@@ -115,11 +115,13 @@
   # As of 2024-10 Flatpak will fail to reinstall from flatpakref URL (https://github.com/flatpak/flatpak/issues/5460).
   # This function will return the appId if the package is already installed, otherwise it will return the flatpakref URL.
   installOrUpdateFromFlatpakref = flatpakrefUrl: installation: let
-    appId = flatpakrefCache.${(utils.sanitizeUrl flatpakrefUrl)}.Name;
-    origin = utils.getRemoteNameFromFlatpakref null flatpakrefCache.${(utils.sanitizeUrl flatpakrefUrl)};
+    ref = flatpakrefCache.${(utils.sanitizeUrl flatpakrefUrl)};
+    appId = ref.Name;
+    origin = utils.getRemoteNameFromFlatpakref null ref;
+    appRef = if ref ? Branch then "${appId}//${ref.Branch}" else appId;
   in ''
     $(if ${pkgs.flatpak}/bin/flatpak --${installation} list --app --columns=application | ${pkgs.gnugrep}/bin/grep -q "^${appId}$"; then
-        echo "${origin} ${appId}"
+        echo "${origin} ${appRef}"
     else
         echo "--from ${flatpakrefUrl}"
     fi)
