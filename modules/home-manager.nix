@@ -13,6 +13,11 @@ in
       default = args.osConfig.services.flatpak.enable or false;
       description = "Whether to enable nix-flatpak declarative flatpak management in home-manager.";
     };
+    setUserEnvironment = with lib; mkOption {
+      type = types.bool;
+      default = config.services.flatpak.enable;
+      description = "Whether to add flatpak related user directories to user environment.";
+    };
   };
 
   config = lib.mkIf config.services.flatpak.enable {
@@ -52,5 +57,8 @@ in
     };
 
     xdg.enable = true;
+
+    xdg.systemDirs.data = lib.mkIf config.services.flatpak.setUserEnvironment ["${config.xdg.dataHome}/flatpak/exports/share"];
+    home.sessionPath = lib.mkIf config.services.flatpak.setUserEnvironment ["${config.xdg.dataHome}/flatpak/exports/bin"];
   };
 }
