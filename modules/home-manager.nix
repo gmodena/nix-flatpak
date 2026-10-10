@@ -17,7 +17,7 @@ in
 
   config = lib.mkIf config.services.flatpak.enable {
     systemd.user.services."flatpak-managed-install" = {
-      Unit.After = [ "multi-user.target" ];
+      Unit.After = [ "network-online.target" ];
       Install.WantedBy = [ "default.target" ];
       Service = helpers.mkCommonServiceConfig
         {
@@ -31,6 +31,7 @@ in
     # that installer used to determine if certain action (e.g. updates)
     # should be performed at activation or not.
     systemd.user.services."flatpak-managed-install-timer" = lib.mkIf config.services.flatpak.update.auto.enable {
+      Unit.After = [ "network-online.target" ];
       Service = helpers.mkCommonServiceConfig
         {
           inherit cfg pkgs lib installation;
