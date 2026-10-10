@@ -13,14 +13,14 @@ flatpaks installation.
 
 We use Git tags and branches to manage versions:
 
-- **`0.7.0`** → Current stable release.
-- **`latest`** → Always points to the most recent stable version (`0.7.0` as of
+- **`0.8.0`** → Current stable release.
+- **`latest`** → Always points to the most recent stable version (`0.8.0` as of
   now).
 - **`main`** → Unstable, development branch.
 
 This project is released as a [flake](https://nixos.wiki/wiki/Flakes), and is
 published on [flakehub](https://flakehub.com/flake/gmodena/nix-flatpak) and
-[flakestry](https://flakestry.dev/flake/github/gmodena/nix-flatpak/0.7.0).
+[flakestry](https://flakestry.dev/flake/github/gmodena/nix-flatpak/0.8.0).
 
 ## Background
 
@@ -55,7 +55,7 @@ version by passing its release tag as `ref`
 
 ```nix
 ...
-nix-flatpak.url = "github:gmodena/nix-flatpak/?ref=v0.7.0";
+nix-flatpak.url = "github:gmodena/nix-flatpak/?ref=v0.8.0";
 ...
 ```
 
@@ -89,7 +89,7 @@ fetcher:
 pkgs.fetchFromGitHub {
     owner = "gmodena";
     repo = "nix-flatpak";
-    rev = "v0.7.0";
+    rev = "v0.8.0";
     hash = "sha256-7ZCulYUD9RmJIDULTRkGLSW1faMpDlPKcbWJLYHoXcs=";
   };
 ```
@@ -108,7 +108,7 @@ let
   nix-flatpak = pkgs.fetchFromGitHub {
     owner = "gmodena";
     repo = "nix-flatpak";
-    rev = "v0.7.0";
+    rev = "v0.8.0";
     hash = "sha256-7ZCulYUD9RmJIDULTRkGLSW1faMpDlPKcbWJLYHoXcs=";
   };
 in
@@ -529,7 +529,7 @@ will be necessary.
 #### Downgrading to a release prior to v2 state format
 
 `nix-flatpak` uses an internal state file to track managed overrides across
-activations. Releases `> 0.7.0` support `overrides.settings` and
+activations. Releases `>= 0.8.0` support `overrides.settings` and
 `overrides.files` write a v2 state file. If you downgrade to an older release
 that only understands the v1 flat `overrides` format, the older release will
 misinterpret its meta-keys (`settings`, `files`, `_fileSettings`,
